@@ -90,17 +90,17 @@ def main():
 ------------------------------------------------------------------------
   [Central Administrator]
     Email:    admin@unihive.edu
-    Password: Admin@UniHive2025!
+    Password: Admin@UniHive2026!
     Access:   Direct Student Allotment + Add/Remove Components + Reports
 
   [Technical Council Volunteer]
     Email:    volunteer@unihive.edu
-    Password: Volunteer@UniHive2025!
+    Password: Volunteer@UniHive2026!
     Access:   Add/Remove Components + QR Handover Passes + Inventory
 
   [Student]
     Email:    student@unihive.edu
-    Password: Student@UniHive2025!
+    Password: Student@UniHive2026!
     Access:   Component Catalog + Request Hardware + QR Pickup Pass
 ------------------------------------------------------------------------
 """

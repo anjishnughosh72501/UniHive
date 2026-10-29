@@ -7,10 +7,10 @@
 import { getInitialSeedData } from './seed.js';
 import * as Rules from './rules.js';
 
-const STORAGE_KEY = 'unihive_db_v5';
+const STORAGE_KEY = 'unihive_db_v6';
 const CURRENT_USER_KEY = 'unihive_current_user_id';
 const SESSION_USER_KEY = 'unihive_session_user_id';
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 let inMemoryDb = null;
 let currentUserId = null;

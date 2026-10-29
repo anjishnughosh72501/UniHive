@@ -31,9 +31,9 @@ UniHive bridges the gap between college hardware lockers (Arduinos, ESP32s, Rasp
 
 | System Role | Email | Password | Permissions |
 |---|---|---|---|
-| **Administrator** | `admin@unihive.edu` | `Admin@UniHive2025!` | **Direct Student Allotment**, Add/Remove Components, User Governance, CSV Audit Export |
-| **Council Volunteer** | `volunteer@unihive.edu` | `Volunteer@UniHive2025!` | Add/Remove Components, Approve/Reject Requests, QR Handover Checkouts & Returns |
-| **Student** | `student@unihive.edu` | `Student@UniHive2025!` | Browse Inventory & Real Graphics, Request Loans, View Custody Passes |
+| **Administrator** | `admin@unihive.edu` | `Admin@UniHive2026!` | **Direct Student Allotment**, Add/Remove Components, User Governance, CSV Audit Export |
+| **Council Volunteer** | `volunteer@unihive.edu` | `Volunteer@UniHive2026!` | Add/Remove Components, Approve/Reject Requests, QR Handover Checkouts & Returns |
+| **Student** | `student@unihive.edu` | `Student@UniHive2026!` | Browse Inventory & Real Graphics, Request Loans, View Custody Passes |
 
 *(You can also register new Student or Council Volunteer accounts anytime via the Signup page).*
 
@@ -118,13 +118,13 @@ Open your browser to:
 2. **Toggle Dark Mode:**
    - Click `☾ DARK` in the top right to verify the high-contrast slate and crisp white/slate text styling.
 3. **Admin Allotment (`#/admin`):**
-   - Sign in as Admin (`admin@unihive.edu` / `Admin@UniHive2025!`).
+   - Sign in as Admin (`admin@unihive.edu` / `Admin@UniHive2026!`).
    - Use the **Direct Student Allotment** console to immediately assign a component to student Maya Chen for the capstone robotics project.
 4. **Council Volunteer Ops (`#/volunteer`):**
-   - Sign in as Council Volunteer (`volunteer@unihive.edu` / `Volunteer@UniHive2025!`).
+   - Sign in as Council Volunteer (`volunteer@unihive.edu` / `Volunteer@UniHive2026!`).
    - Click **+ Add New Component** to register new hardware into the locker.
    - Use the **Remove** button to take obsolete components out of circulation.
    - Review pending requests and conduct physical check-outs/returns.
 5. **Student Experience (`#/my-bookings`):**
-   - Sign in as Student (`student@unihive.edu` / `Student@UniHive2025!`).
+   - Sign in as Student (`student@unihive.edu` / `Student@UniHive2026!`).
    - View the active loan, the **⚡ ADMIN ALLOTTED** badge, and the digital QR pass.

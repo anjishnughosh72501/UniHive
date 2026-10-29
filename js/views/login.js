@@ -50,13 +50,13 @@ export async function renderLogin(params, container) {
             ⚡ QUICK FILL PRESET DEMO ACCOUNTS:
           </div>
           <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-            <button type="button" class="btn-brut btn-sm btn-secondary btn-preset-fill" data-email="admin@unihive.edu" data-pass="Admin@UniHive2025!">
+            <button type="button" class="btn-brut btn-sm btn-secondary btn-preset-fill" data-email="admin@unihive.edu" data-pass="Admin@UniHive2026!">
               🏛️ Admin
             </button>
-            <button type="button" class="btn-brut btn-sm btn-secondary btn-preset-fill" data-email="volunteer@unihive.edu" data-pass="Volunteer@UniHive2025!">
+            <button type="button" class="btn-brut btn-sm btn-secondary btn-preset-fill" data-email="volunteer@unihive.edu" data-pass="Volunteer@UniHive2026!">
               🛡️ Council Volunteer
             </button>
-            <button type="button" class="btn-brut btn-sm btn-secondary btn-preset-fill" data-email="student@unihive.edu" data-pass="Student@UniHive2025!">
+            <button type="button" class="btn-brut btn-sm btn-secondary btn-preset-fill" data-email="student@unihive.edu" data-pass="Student@UniHive2026!">
               🎓 Student
             </button>
           </div>

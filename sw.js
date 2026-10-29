@@ -3,7 +3,7 @@
  * Version 4: MediaWiki Imageinfo API integration & Hardware Photography
  */
 
-const CACHE_NAME = 'unihive-cache-v5';
+const CACHE_NAME = 'unihive-cache-v6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

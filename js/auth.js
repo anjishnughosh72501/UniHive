@@ -13,7 +13,7 @@ const SESSION_TOKEN_KEY = 'unihive_session_user_id';
  */
 export async function hashPassword(plainTextPassword) {
   const encoder = new TextEncoder();
-  const data = encoder.encode(plainTextPassword + '_unihive_salt_2025');
+  const data = encoder.encode(plainTextPassword + '_unihive_salt_2026');
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
