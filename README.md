@@ -1,6 +1,6 @@
 # UniHive // Campus Electronics & Hardware Sharing Hub
 
-> **A Neo-Brutalist campus equipment and electronics locker platform for sharing college hardware, microcontrollers, sensor kits, and batteries with physical chain-of-custody QR handovers, council volunteer inventory management, and direct administrative project allotments.**
+> **A campus equipment and electronics locker platform for sharing college hardware, microcontrollers, sensor kits, and batteries with physical chain-of-custody QR handovers, council volunteer inventory management, and direct administrative project allotments.**
 
 ---
 
