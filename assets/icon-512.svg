@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#FFD93D"/>
+  <rect x="40" y="40" width="432" height="432" fill="#FFF8E7" stroke="#111111" stroke-width="20" rx="16"/>
+  <rect x="96" y="96" width="320" height="320" fill="#111111" rx="8"/>
+  <text x="256" y="295" fill="#FFD93D" font-family="'Space Grotesk', sans-serif" font-size="160" font-weight="900" text-anchor="middle">CS</text>
+</svg>

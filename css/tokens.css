@@ -1,0 +1,59 @@
+/* CampusShare Neo-Brutalist Design Tokens */
+:root {
+  --color-ink: #111111;
+  --color-paper: #FFF8E7; /* Warm notebook cream */
+  --color-paper-card: #FFFFFF;
+  --color-primary: #FFD93D; /* Marker yellow */
+  --color-coral: #FF6B6B;   /* Danger, overdue, damage */
+  --color-blue: #4D96FF;    /* Links, active, in-field */
+  --color-mint: #6BCB77;    /* Approved, returned, success */
+  --color-lilac: #B983FF;   /* Training-gated, admin */
+  --color-white: #FFFFFF;
+  --color-muted: #555555;
+  --color-border: #111111;
+
+  --border-thick: 3px solid var(--color-ink);
+  --border-medium: 2px solid var(--color-ink);
+  --border-thin: 1px solid var(--color-ink);
+
+  --shadow-hard: 6px 6px 0 var(--color-ink);
+  --shadow-hard-sm: 3px 3px 0 var(--color-ink);
+  --shadow-hard-lg: 10px 10px 0 var(--color-ink);
+  --shadow-hard-active: 2px 2px 0 var(--color-ink);
+
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  --font-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+
+  --dot-grid-size: 24px;
+  --dot-grid-color: rgba(17, 17, 17, 0.08);
+}
+
+[data-theme="dark"] {
+  --color-ink: #F2EFE9;
+  --color-paper: #16161D; /* Dark notebook slate */
+  --color-paper-card: #1F1F2A;
+  --color-primary: #FFD93D;
+  --color-coral: #FF6B6B;
+  --color-blue: #60A5FA;
+  --color-mint: #4ADE80;
+  --color-lilac: #C084FC;
+  --color-white: #1F1F2A;
+  --color-muted: #A8A8B4;
+  --color-border: #F2EFE9;
+
+  --border-thick: 3px solid var(--color-ink);
+  --border-medium: 2px solid var(--color-ink);
+  --border-thin: 1px solid var(--color-ink);
+
+  --shadow-hard: 6px 6px 0 var(--color-primary);
+  --shadow-hard-sm: 3px 3px 0 var(--color-primary);
+  --shadow-hard-lg: 10px 10px 0 var(--color-primary);
+  --shadow-hard-active: 2px 2px 0 var(--color-primary);
+
+  --dot-grid-color: rgba(242, 239, 233, 0.07);
+}

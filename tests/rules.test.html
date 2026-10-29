@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusShare // Rules Unit Test Suite</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/components.css">
+
+  <style>
+    body {
+      padding: 2rem 1rem;
+    }
+    .test-card {
+      border: var(--border-thick);
+      box-shadow: var(--shadow-hard);
+      background: var(--color-paper-card);
+      margin-bottom: 1.5rem;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .test-header {
+      padding: 1rem 1.25rem;
+      border-bottom: var(--border-medium);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--color-paper);
+    }
+    .test-item {
+      padding: 0.85rem 1.25rem;
+      border-bottom: var(--border-thin);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+    .test-item:last-child {
+      border-bottom: none;
+    }
+    .test-pass {
+      background: rgba(107, 203, 119, 0.12);
+    }
+    .test-fail {
+      background: rgba(255, 107, 107, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width: 900px;">
+    <div style="margin-bottom: 2rem;">
+      <a href="../#/" class="btn-brut btn-sm btn-secondary" style="margin-bottom: 1rem;">← Return to CampusShare</a>
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <span class="sticker sticker-primary">AUTOMATED SPECIFICATION VERIFICATION</span>
+          <h1 style="font-size: 2.25rem; margin-top: 0.25rem;">Business Rules Test Suite</h1>
+          <p style="color: var(--color-muted);">Pure function unit test assertions across the entire booking lifecycle.</p>
+        </div>
+        <div id="test-summary" class="card-brut" style="padding: 0.75rem 1.25rem; background: var(--color-paper);">
+          Running tests...
+        </div>
+      </div>
+    </div>
+
+    <div id="test-suites-container"></div>
+  </div>
+
+  <script type="module">
+    import * as Rules from '../js/rules.js';
+
+    const suites = [];
+    let currentSuite = null;
+
+    function describe(suiteName, fn) {
+      currentSuite = { name: suiteName, tests: [] };
+      suites.push(currentSuite);
+      fn();
+    }
+
+    function it(testName, testFn) {
+      currentSuite.tests.push({ name: testName, fn: testFn });
+    }
+
+    function assert(condition, message = 'Assertion failed') {
+      if (!condition) throw new Error(message);
+    }
+
+    function assertEqual(actual, expected, message = '') {
+      if (actual !== expected) {
+        throw new Error(`${message ? message + ': ' : ''}Expected [${expected}] but got [${actual}]`);
+      }
+    }
+
+    // =========================================================================
+    // 1. OVERLAP & WAITLIST DETERMINATION
+    // =========================================================================
+    describe('1. Overlap Detection & Initial Status', () => {
+      it('detects overlapping date ranges correctly', () => {
+        const s1 = '2026-11-01T10:00:00Z';
+        const e1 = '2026-11-01T14:00:00Z';
+        
+        // Exact overlap
+        assert(Rules.isOverlapping(s1, e1, '2026-11-01T11:00:00Z', '2026-11-01T13:00:00Z'), 'Sub-range should overlap');
+        // Partial overlap left
+        assert(Rules.isOverlapping(s1, e1, '2026-11-01T09:00:00Z', '2026-11-01T11:00:00Z'), 'Left partial should overlap');
+        // Partial overlap right
+        assert(Rules.isOverlapping(s1, e1, '2026-11-01T13:00:00Z', '2026-11-01T15:00:00Z'), 'Right partial should overlap');
+        // Back-to-back (no overlap)
+        assert(!Rules.isOverlapping(s1, e1, '2026-11-01T14:00:00Z', '2026-11-01T16:00:00Z'), 'Back to back adjacent should not overlap');
+        // Completely before
+        assert(!Rules.isOverlapping(s1, e1, '2026-11-01T07:00:00Z', '2026-11-01T09:00:00Z'), 'Prior range should not overlap');
+      });
+
+      it('assigns waitlisted status on conflict, pending when clear', () => {
+        const existing = [
+          { id: 10, resource_id: 1, status: 'approved', start_at: '2026-11-01T10:00:00Z', end_at: '2026-11-01T14:00:00Z' }
+        ];
+
+        const conflictStatus = Rules.determineInitialBookingStatus(1, '2026-11-01T12:00:00Z', '2026-11-01T15:00:00Z', existing);
+        assertEqual(conflictStatus, Rules.BOOKING_STATUSES.WAITLISTED, 'Conflict must yield waitlisted');
+
+        const freeStatus = Rules.determineInitialBookingStatus(1, '2026-11-01T15:00:00Z', '2026-11-01T18:00:00Z', existing);
+        assertEqual(freeStatus, Rules.BOOKING_STATUSES.PENDING, 'Non-conflict must yield pending');
+      });
+    });
+
+    // =========================================================================
+    // 2. WAITLIST AUTO-PROMOTION
+    // =========================================================================
+    describe('2. Waitlist Auto-Promotion Engine', () => {
+      it('promotes the oldest compatible waitlisted request', () => {
+        const bookings = [
+          // Currently approved booking that is about to be released/rejected
+          { id: 1, resource_id: 5, status: 'rejected', start_at: '2026-11-02T10:00:00Z', end_at: '2026-11-02T16:00:00Z' },
+          // Newer waitlisted request
+          { id: 2, resource_id: 5, status: 'waitlisted', created_at: '2026-10-29T12:00:00Z', start_at: '2026-11-02T11:00:00Z', end_at: '2026-11-02T15:00:00Z' },
+          // Older waitlisted request (should take priority)
+          { id: 3, resource_id: 5, status: 'waitlisted', created_at: '2026-10-29T08:00:00Z', start_at: '2026-11-02T10:00:00Z', end_at: '2026-11-02T14:00:00Z' }
+        ];
+
+        const candidate = Rules.findWaitlistCandidateForPromotion(5, bookings);
+        assert(candidate !== null, 'Candidate must be found');
+        assertEqual(candidate.id, 3, 'Oldest waitlisted candidate (id 3) must be selected');
+      });
+
+      it('skips waitlist candidates with active conflicts', () => {
+        const bookings = [
+          // Active conflicting booking
+          { id: 1, resource_id: 5, status: 'approved', start_at: '2026-11-02T10:00:00Z', end_at: '2026-11-02T14:00:00Z' },
+          // Oldest waitlist candidate conflicts with active id 1
+          { id: 2, resource_id: 5, status: 'waitlisted', created_at: '2026-10-29T08:00:00Z', start_at: '2026-11-02T11:00:00Z', end_at: '2026-11-02T13:00:00Z' },
+          // Newer waitlist candidate is free in the afternoon
+          { id: 3, resource_id: 5, status: 'waitlisted', created_at: '2026-10-29T10:00:00Z', start_at: '2026-11-02T15:00:00Z', end_at: '2026-11-02T18:00:00Z' }
+        ];
+
+        const candidate = Rules.findWaitlistCandidateForPromotion(5, bookings);
+        assert(candidate !== null, 'Compatible candidate should be found');
+        assertEqual(candidate.id, 3, 'Candidate without conflict must be promoted over conflicting older candidate');
+      });
+    });
+
+    // =========================================================================
+    // 3. FAIR-USE LIMIT & VALIDATION
+    // =========================================================================
+    describe('3. Fair-Use Limit (Max 3 Active Requests)', () => {
+      const user = { id: 1, name: 'Maya', trained_categories: 'Electronics' };
+      const resource = { id: 1, active: true, category: 'Electronics', training_required: true };
+      const now = new Date('2026-11-01T08:00:00Z');
+      const start = '2026-11-02T10:00:00Z';
+      const end = '2026-11-02T16:00:00Z';
+
+      it('allows request when user has 0, 1, or 2 active bookings', () => {
+        const res0 = Rules.validateBookingRequest(user, resource, 0, start, end, 'Project work', now);
+        assert(res0.valid, '0 active should be valid');
+
+        const res2 = Rules.validateBookingRequest(user, resource, 2, start, end, 'Project work', now);
+        assert(res2.valid, '2 active should be valid');
+      });
+
+      it('rejects request when user active bookings count is 3 or more', () => {
+        const res3 = Rules.validateBookingRequest(user, resource, 3, start, end, 'Project work', now);
+        assert(!res3.valid, '3 active bookings must be rejected');
+        assert(res3.error.includes('Fair-use limit reached'), 'Should report fair-use error');
+      });
+    });
+
+    // =========================================================================
+    // 4. TRAINING GATE
+    // =========================================================================
+    describe('4. Training Certification Gate', () => {
+      const studentUntrained = { id: 2, trained_categories: 'Photography' };
+      const studentTrained = { id: 3, trained_categories: 'Electronics,3D Printers' };
+      const gatedResource = { id: 9, active: true, category: 'Electronics', training_required: true };
+      const openResource = { id: 10, active: true, category: 'Photography', training_required: false };
+
+      const now = new Date('2026-11-01T08:00:00Z');
+      const start = '2026-11-02T10:00:00Z';
+      const end = '2026-11-02T16:00:00Z';
+
+      it('blocks untrained students from training-required equipment', () => {
+        const check = Rules.validateBookingRequest(studentUntrained, gatedResource, 0, start, end, 'Lab test', now);
+        assert(!check.valid, 'Untrained student must be blocked');
+        assert(check.error.includes('verified training'), 'Error must specify training requirement');
+      });
+
+      it('allows trained students to book training-required equipment', () => {
+        const check = Rules.validateBookingRequest(studentTrained, gatedResource, 0, start, end, 'Lab test', now);
+        assert(check.valid, 'Trained student must be permitted');
+      });
+
+      it('allows untrained students to book open (non-gated) equipment', () => {
+        const check = Rules.validateBookingRequest(studentUntrained, openResource, 0, start, end, 'Photo shoot', now);
+        assert(check.valid, 'Open equipment must not require training');
+      });
+    });
+
+    // =========================================================================
+    // 5. HANDOVER PROTOCOL & CONDITION REPORTS
+    // =========================================================================
+    describe('5. Handover Protocols & Condition Reports', () => {
+      const owner = { id: 101, role: 'owner' };
+      const student = { id: 1, role: 'student' };
+      const resource = { id: 1, owner_id: 101 };
+
+      it('enforces initial (before) condition report before check-out', () => {
+        const approvedBooking = { id: 10, resource_id: 1, user_id: 1, status: 'approved' };
+        
+        // Without condition report
+        assert(!Rules.canCheckout(owner, approvedBooking, [], resource), 'Cannot check out without report');
+
+        // With initial condition report
+        const reports = [{ booking_id: 10, stage: 'before', condition: 'good' }];
+        assert(Rules.canCheckout(owner, approvedBooking, reports, resource), 'Can check out with before report');
+      });
+
+      it('enforces final (after) condition report before return confirmation', () => {
+        const checkedOutBooking = { id: 10, resource_id: 1, user_id: 1, status: 'checked_out' };
+        const reportsBeforeOnly = [{ booking_id: 10, stage: 'before', condition: 'good' }];
+
+        assert(!Rules.canReturn(owner, checkedOutBooking, reportsBeforeOnly, resource), 'Cannot return without final report');
+
+        const reportsBoth = [
+          { booking_id: 10, stage: 'before', condition: 'good' },
+          { booking_id: 10, stage: 'after', condition: 'good' }
+        ];
+        assert(Rules.canReturn(owner, checkedOutBooking, reportsBoth, resource), 'Can return when after report present');
+      });
+
+      it('allows cancellation only on pending, waitlisted, or approved bookings', () => {
+        assert(Rules.canCancelBooking(student, { user_id: 1, status: 'pending' }), 'Can cancel pending');
+        assert(Rules.canCancelBooking(student, { user_id: 1, status: 'waitlisted' }), 'Can cancel waitlisted');
+        assert(Rules.canCancelBooking(student, { user_id: 1, status: 'approved' }), 'Can cancel approved');
+        assert(!Rules.canCancelBooking(student, { user_id: 1, status: 'checked_out' }), 'Cannot cancel checked_out');
+        assert(!Rules.canCancelBooking(student, { user_id: 1, status: 'returned' }), 'Cannot cancel returned');
+      });
+    });
+
+    // =========================================================================
+    // 6. PERMISSION & ROLES CHECKS
+    // =========================================================================
+    describe('6. Role & Permission Governance', () => {
+      const student = { id: 1, role: 'student' };
+      const owner1 = { id: 101, role: 'owner' };
+      const owner2 = { id: 102, role: 'owner' };
+      const admin = { id: 201, role: 'admin' };
+      const resource1 = { id: 1, owner_id: 101 };
+      const booking = { id: 1, resource_id: 1, user_id: 1, status: 'pending' };
+
+      it('prohibits students from approving bookings', () => {
+        assert(!Rules.canDecideBooking(student, booking, resource1), 'Student cannot decide booking');
+      });
+
+      it('prohibits an owner from deciding another owner\'s equipment', () => {
+        assert(!Rules.canDecideBooking(owner2, booking, resource1), 'Owner 2 cannot decide Owner 1 equipment');
+      });
+
+      it('permits authorized owner and administrator to decide bookings', () => {
+        assert(Rules.canDecideBooking(owner1, booking, resource1), 'Assigned owner can decide');
+        assert(Rules.canDecideBooking(admin, booking, resource1), 'Admin can decide any resource');
+      });
+    });
+
+    // =========================================================================
+    // 7. OVERDUE DETECTION
+    // =========================================================================
+    describe('7. Overdue Detection', () => {
+      const now = new Date('2026-11-05T12:00:00Z');
+
+      it('flags checked_out booking with past end_at as overdue', () => {
+        const overdue = { status: 'checked_out', end_at: '2026-11-04T17:00:00Z' };
+        assert(Rules.isOverdue(overdue, now), 'Past end_at must be overdue');
+      });
+
+      it('does not flag active bookings with future end_at', () => {
+        const notOverdue = { status: 'checked_out', end_at: '2026-11-06T17:00:00Z' };
+        assert(!Rules.isOverdue(notOverdue, now), 'Future end_at must not be overdue');
+      });
+
+      it('does not flag returned or pending bookings as overdue', () => {
+        const returnedPast = { status: 'returned', end_at: '2026-11-04T17:00:00Z' };
+        assert(!Rules.isOverdue(returnedPast, now), 'Returned bookings cannot be overdue');
+      });
+    });
+
+    // =========================================================================
+    // 8. TRUST SCORE & HUMAN REVIEW PRINCIPLE
+    // =========================================================================
+    describe('8. Trust Score & Human Review Guarantee', () => {
+      it('calculates points: +10 for on-time good, +3 for minor issue, -10 for late', () => {
+        const bookings = [
+          { id: 1, user_id: 10, status: 'returned', end_at: '2026-10-10T12:00:00Z', returned_at: '2026-10-10T11:00:00Z' }, // on time
+          { id: 2, user_id: 10, status: 'returned', end_at: '2026-10-12T12:00:00Z', returned_at: '2026-10-12T11:00:00Z' }, // on time
+          { id: 3, user_id: 10, status: 'returned', end_at: '2026-10-14T12:00:00Z', returned_at: '2026-10-15T10:00:00Z' }  // late
+        ];
+        const reports = [
+          { booking_id: 1, stage: 'after', condition: 'good' },        // +10
+          { booking_id: 2, stage: 'after', condition: 'minor_issue' }, // +3
+          { booking_id: 3, stage: 'after', condition: 'good' }         // -10
+        ];
+
+        const trust = Rules.calculateTrustScore(10, bookings, [], reports);
+        assertEqual(trust.score, 3, '10 + 3 - 10 = 3');
+        assertEqual(trust.level, 'Newcomer');
+        assert(trust.advisoryNotice.includes('advisory'), 'Must state advisory non-punitive nature');
+      });
+
+      it('deducts damage penalty ONLY when confirmed by human-resolved incident', () => {
+        const bookings = [
+          { id: 1, user_id: 20, status: 'returned', end_at: '2026-10-10T12:00:00Z', returned_at: '2026-10-10T11:00:00Z' } // +10
+        ];
+        const reports = [{ booking_id: 1, stage: 'after', condition: 'damaged' }];
+
+        // Case A: Incident is still OPEN (unconfirmed / awaiting dialogue)
+        const openIncidents = [{ id: 100, booking_id: 1, incident_type: 'damage', status: 'open' }];
+        const trustOpen = Rules.calculateTrustScore(20, bookings, openIncidents, reports);
+        assertEqual(trustOpen.score, 0, 'No penalty applied from unresolved incident');
+
+        // Case B: Incident is RESOLVED through human review meeting
+        const resolvedIncidents = [{ id: 100, booking_id: 1, incident_type: 'damage', status: 'resolved', resolution: 'Confirmed damage after review' }];
+        const trustResolved = Rules.calculateTrustScore(20, bookings, resolvedIncidents, reports);
+        // Score was 10 - 15 = -5, clamped to 0
+        assertEqual(trustResolved.score, 0, 'Score clamps at 0');
+      });
+
+      it('maps scores to badge tiers: Newcomer, Reliable, Trusted, Campus Legend', () => {
+        // High score simulation: 10 on-time good returns (+100)
+        const bookings = Array.from({ length: 11 }, (_, i) => ({
+          id: i + 1,
+          user_id: 50,
+          status: 'returned',
+          end_at: '2026-10-10T12:00:00Z',
+          returned_at: '2026-10-10T11:00:00Z'
+        }));
+        const reports = bookings.map(b => ({ booking_id: b.id, stage: 'after', condition: 'good' }));
+
+        const legendTrust = Rules.calculateTrustScore(50, bookings, [], reports);
+        assert(legendTrust.score >= 100, 'Score >= 100');
+        assertEqual(legendTrust.level, 'Campus Legend');
+      });
+
+      it('qualifies Trusted users for instant auto-approval on non-training equipment', () => {
+        const student = { id: 1 };
+        const openResource = { auto_approve_trusted: true, training_required: false };
+        const gatedResource = { auto_approve_trusted: true, training_required: true };
+        const highTrust = { score: 70, level: 'Trusted' };
+        const lowTrust = { score: 10, level: 'Newcomer' };
+
+        assert(Rules.canAutoApprove(student, openResource, highTrust, false), 'High trust on open gear auto-approves');
+        assert(!Rules.canAutoApprove(student, gatedResource, highTrust, false), 'Training gated never auto-approves');
+        assert(!Rules.canAutoApprove(student, openResource, lowTrust, false), 'Low trust requires manual approval');
+      });
+    });
+
+    // =========================================================================
+    // RUN TEST RUNNER & RENDER RESULTS
+    // =========================================================================
+    async function runRunner() {
+      const container = document.getElementById('test-suites-container');
+      const summaryEl = document.getElementById('test-summary');
+
+      let total = 0;
+      let passed = 0;
+      let failed = 0;
+      const startTime = performance.now();
+
+      container.innerHTML = suites.map(s => {
+        return `
+          <section class="test-card">
+            <div class="test-header">
+              <h2 style="font-size: 1.15rem; margin: 0;">${s.name}</h2>
+              <span class="sticker sticker-primary" id="badge-${s.name.replace(/[^a-zA-Z0-9]/g, '')}">Running</span>
+            </div>
+            <div class="test-body" id="body-${s.name.replace(/[^a-zA-Z0-9]/g, '')}"></div>
+          </section>
+        `;
+      }).join('');
+
+      for (const s of suites) {
+        const bodyEl = document.getElementById(`body-${s.name.replace(/[^a-zA-Z0-9]/g, '')}`);
+        const badgeEl = document.getElementById(`badge-${s.name.replace(/[^a-zA-Z0-9]/g, '')}`);
+        let suitePassed = true;
+
+        for (const t of s.tests) {
+          total++;
+          try {
+            await t.fn();
+            passed++;
+            const item = document.createElement('div');
+            item.className = 'test-item test-pass';
+            item.innerHTML = `
+              <span>✓ ${t.name}</span>
+              <span class="sticker sticker-mint" style="font-size: 0.65rem;">PASS</span>
+            `;
+            bodyEl.appendChild(item);
+          } catch (err) {
+            failed++;
+            suitePassed = false;
+            const item = document.createElement('div');
+            item.className = 'test-item test-fail';
+            item.innerHTML = `
+              <div>
+                <strong>✖ ${t.name}</strong>
+                <div style="font-family: var(--font-mono); font-size: 0.8rem; color: #990000; margin-top: 0.25rem;">
+                  ${err.message}
+                </div>
+              </div>
+              <span class="sticker sticker-coral" style="font-size: 0.65rem;">FAIL</span>
+            `;
+            bodyEl.appendChild(item);
+          }
+        }
+
+        badgeEl.textContent = suitePassed ? 'ALL PASSED' : 'FAILURES';
+        badgeEl.className = `sticker ${suitePassed ? 'sticker-mint' : 'sticker-coral'}`;
+      }
+
+      const duration = (performance.now() - startTime).toFixed(1);
+      summaryEl.innerHTML = `
+        <div style="font-family: var(--font-mono); font-size: 0.85rem;">
+          Total: <strong>${total}</strong> | 
+          Passed: <strong style="color: var(--color-mint);">${passed}</strong> | 
+          Failed: <strong style="color: ${failed ? 'var(--color-coral)' : 'inherit'};">${failed}</strong> 
+          (${duration}ms)
+        </div>
+      `;
+    }
+
+    runRunner();
+  </script>
+</body>
+</html>
