@@ -1,15 +1,16 @@
 /**
- * CampusShare Data Access Layer
- * The ONLY module that touches persistent storage.
- * Designed with an asynchronous API to easily allow a Supabase/Postgres adapter replacement.
+ * UniHive Data Access Layer
+ * Persistent storage with LocalStorage & in-memory fallback
+ * Version 3: UniHive Rebrand & Direct Admin Allotments
  */
 
 import { getInitialSeedData } from './seed.js';
 import * as Rules from './rules.js';
 
-const STORAGE_KEY = 'campusshare_db_v1';
-const CURRENT_USER_KEY = 'campusshare_current_user_id';
-const SCHEMA_VERSION = 1;
+const STORAGE_KEY = 'unihive_db_v5';
+const CURRENT_USER_KEY = 'unihive_current_user_id';
+const SESSION_USER_KEY = 'unihive_session_user_id';
+const SCHEMA_VERSION = 5;
 
 let inMemoryDb = null;
 let currentUserId = null;
@@ -62,16 +63,16 @@ export async function initStore() {
     inMemoryDb = data;
   }
 
-  // Load active user or default to student Maya Chen (id: 1)
+  // Check session token
   try {
-    const savedUserId = localStorage.getItem(CURRENT_USER_KEY);
-    if (savedUserId && inMemoryDb.users.some(u => u.id === Number(savedUserId))) {
-      currentUserId = Number(savedUserId);
+    const sessionUserId = localStorage.getItem(SESSION_USER_KEY) || localStorage.getItem(CURRENT_USER_KEY);
+    if (sessionUserId && inMemoryDb.users.some(u => u.id === Number(sessionUserId))) {
+      currentUserId = Number(sessionUserId);
     } else {
-      currentUserId = 1;
+      currentUserId = null;
     }
   } catch (e) {
-    currentUserId = 1;
+    currentUserId = null;
   }
 
   return inMemoryDb;
@@ -85,12 +86,28 @@ export async function resetStore() {
 
 export async function getCurrentUser() {
   if (!inMemoryDb) await initStore();
-  const user = inMemoryDb.users.find(u => u.id === currentUserId) || inMemoryDb.users[0];
-  return { ...user };
+  const sessionUserId = localStorage.getItem(SESSION_USER_KEY) || localStorage.getItem(CURRENT_USER_KEY);
+  if (sessionUserId) {
+    const user = inMemoryDb.users.find(u => u.id === Number(sessionUserId));
+    if (user) return { ...user };
+  }
+  if (currentUserId) {
+    const user = inMemoryDb.users.find(u => u.id === currentUserId);
+    if (user) return { ...user };
+  }
+  return null;
 }
 
 export async function setCurrentUser(userId) {
   if (!inMemoryDb) await initStore();
+  if (!userId) {
+    currentUserId = null;
+    if (isLocalStorageAvailable()) {
+      localStorage.removeItem(CURRENT_USER_KEY);
+      localStorage.removeItem(SESSION_USER_KEY);
+    }
+    return null;
+  }
   const idNum = Number(userId);
   const user = inMemoryDb.users.find(u => u.id === idNum);
   if (!user) throw new Error(`User id ${userId} not found`);
@@ -98,6 +115,7 @@ export async function setCurrentUser(userId) {
   if (isLocalStorageAvailable()) {
     try {
       localStorage.setItem(CURRENT_USER_KEY, String(idNum));
+      localStorage.setItem(SESSION_USER_KEY, String(idNum));
     } catch (e) {}
   }
   return { ...user };
@@ -114,6 +132,26 @@ export async function getUserById(id) {
   return user ? { ...user } : null;
 }
 
+export async function createUser(userData) {
+  if (!inMemoryDb) await initStore();
+  const newId = inMemoryDb.users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+  const newUser = {
+    id: newId,
+    name: userData.name,
+    email: userData.email,
+    password_hash: userData.password_hash || '',
+    password: userData.password || '',
+    role: userData.role || 'student',
+    department: userData.department || 'General Engineering',
+    student_id: userData.student_id || `CS-${newId}`,
+    trained_categories: userData.trained_categories || 'Microcontrollers,Electronics',
+    created_at: new Date().toISOString()
+  };
+  inMemoryDb.users.push(newUser);
+  saveToStorage(inMemoryDb);
+  return { ...newUser };
+}
+
 export async function updateUser(id, updates) {
   if (!inMemoryDb) await initStore();
   const idx = inMemoryDb.users.findIndex(u => u.id === Number(id));
@@ -123,7 +161,7 @@ export async function updateUser(id, updates) {
   return { ...inMemoryDb.users[idx] };
 }
 
-// ----------------- RESOURCES -----------------
+// ----------------- COMPONENTS / RESOURCES -----------------
 
 export async function listResources(filter = {}) {
   if (!inMemoryDb) await initStore();
@@ -132,7 +170,6 @@ export async function listResources(filter = {}) {
   if (filter.active !== undefined) {
     list = list.filter(r => r.active === filter.active);
   } else {
-    // Default to active only unless specified
     list = list.filter(r => r.active !== false);
   }
 
@@ -150,6 +187,7 @@ export async function listResources(filter = {}) {
       r.name.toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q) ||
       r.location.toLowerCase().includes(q) ||
+      (r.component_code && r.component_code.toLowerCase().includes(q)) ||
       (r.tags && r.tags.some(t => t.toLowerCase().includes(q)))
     );
   }
@@ -166,15 +204,19 @@ export async function getResourceById(id) {
 export async function createResource(resourceData) {
   if (!inMemoryDb) await initStore();
   const newId = inMemoryDb.resources.reduce((max, r) => Math.max(max, r.id), 0) + 1;
+  const quantity = Number(resourceData.quantity_total) || 1;
   const newResource = {
     id: newId,
     active: true,
+    component_code: resourceData.component_code || `CS-HW-${String(newId).padStart(2, '0')}`,
+    quantity_total: quantity,
+    quantity_available: quantity,
     auto_approve_trusted: Boolean(resourceData.auto_approve_trusted),
     tags: Array.isArray(resourceData.tags) ? resourceData.tags : (resourceData.tags ? resourceData.tags.split(',').map(t => t.trim()) : []),
     ...resourceData
   };
   inMemoryDb.resources.push(newResource);
-  await recordAuditEvent(resourceData.owner_id, 'resource_listed', 'resource', newId, `Listed new resource: ${newResource.name}`);
+  await recordAuditEvent(resourceData.owner_id, 'component_added', 'resource', newId, `Added component: ${newResource.name} (${newResource.component_code})`);
   saveToStorage(inMemoryDb);
   return { ...newResource };
 }
@@ -182,13 +224,24 @@ export async function createResource(resourceData) {
 export async function updateResource(id, updates) {
   if (!inMemoryDb) await initStore();
   const idx = inMemoryDb.resources.findIndex(r => r.id === Number(id));
-  if (idx === -1) throw new Error(`Resource ${id} not found`);
+  if (idx === -1) throw new Error(`Component ${id} not found`);
   inMemoryDb.resources[idx] = { ...inMemoryDb.resources[idx], ...updates };
   saveToStorage(inMemoryDb);
   return { ...inMemoryDb.resources[idx] };
 }
 
-// ----------------- BOOKINGS -----------------
+export async function deleteResource(id, actorId) {
+  if (!inMemoryDb) await initStore();
+  const idx = inMemoryDb.resources.findIndex(r => r.id === Number(id));
+  if (idx === -1) throw new Error(`Component ${id} not found`);
+  const comp = inMemoryDb.resources[idx];
+  inMemoryDb.resources.splice(idx, 1);
+  await recordAuditEvent(actorId, 'component_removed', 'resource', id, `Removed component: ${comp.name} (${comp.component_code || ''})`);
+  saveToStorage(inMemoryDb);
+  return true;
+}
+
+// ----------------- ADMIN ALLOTMENT & BOOKINGS -----------------
 
 export async function listBookings(filter = {}) {
   if (!inMemoryDb) await initStore();
@@ -204,7 +257,6 @@ export async function listBookings(filter = {}) {
     list = list.filter(b => b.status === filter.status);
   }
 
-  // Sort descending by created_at by default
   list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   return list;
 }
@@ -222,15 +274,17 @@ export async function getBookingByQrToken(token) {
   return item ? { ...item } : null;
 }
 
+/**
+ * Standard Student Request Flow
+ */
 export async function createBooking({ resource_id, user_id, start_at, end_at, purpose }) {
   if (!inMemoryDb) await initStore();
   const user = await getUserById(user_id);
   const resource = await getResourceById(resource_id);
 
-  // Active bookings count for fair use rule
   const userActiveCount = inMemoryDb.bookings.filter(b => 
     b.user_id === Number(user_id) &&
-    [Rules.BOOKING_STATUSES.PENDING, Rules.BOOKING_STATUSES.APPROVED, Rules.BOOKING_STATUSES.CHECKED_OUT, Rules.BOOKING_STATUSES.WAITLISTED].includes(b.status)
+    [Rules.BOOKING_STATUSES.PENDING, Rules.BOOKING_STATUSES.APPROVED, Rules.BOOKING_STATUSES.CHECKED_OUT, Rules.BOOKING_STATUSES.WAITLISTED, Rules.BOOKING_STATUSES.ALLOTTED].includes(b.status)
   ).length;
 
   const validation = Rules.validateBookingRequest(user, resource, userActiveCount, start_at, end_at, purpose);
@@ -242,18 +296,9 @@ export async function createBooking({ resource_id, user_id, start_at, end_at, pu
   const newId = inMemoryDb.bookings.reduce((max, b) => Math.max(max, b.id), 0) + 1;
   const qrToken = `CS-QR-BK${newId}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // Check auto-approval for Trusted students
-  const userIncidents = inMemoryDb.incidents || [];
-  const userReports = inMemoryDb.conditionReports || [];
-  const trust = Rules.calculateTrustScore(user.id, inMemoryDb.bookings, userIncidents, userReports);
-  const hasConflict = initialStatus === Rules.BOOKING_STATUSES.WAITLISTED;
-
   let decisionReason = '';
-  if (hasConflict) {
+  if (initialStatus === Rules.BOOKING_STATUSES.WAITLISTED) {
     decisionReason = 'Time conflict with existing booking; queued in waitlist.';
-  } else if (Rules.canAutoApprove(user, resource, trust, hasConflict)) {
-    initialStatus = Rules.BOOKING_STATUSES.APPROVED;
-    decisionReason = 'Instant auto-approval granted via Trusted Lender standing (Score >= 50).';
   }
 
   const newBooking = {
@@ -265,6 +310,7 @@ export async function createBooking({ resource_id, user_id, start_at, end_at, pu
     purpose: purpose.trim(),
     status: initialStatus,
     decision_reason: decisionReason,
+    allotted_by: null,
     created_at: new Date().toISOString(),
     checked_out_at: null,
     returned_at: null,
@@ -273,14 +319,60 @@ export async function createBooking({ resource_id, user_id, start_at, end_at, pu
 
   inMemoryDb.bookings.push(newBooking);
 
-  let eventAction = 'booking_requested';
-  if (initialStatus === Rules.BOOKING_STATUSES.WAITLISTED) {
-    eventAction = 'booking_waitlisted';
-  } else if (initialStatus === Rules.BOOKING_STATUSES.APPROVED) {
-    eventAction = 'booking_auto_approved';
+  await recordAuditEvent(user.id, 'booking_requested', 'booking', newId, `Requested ${resource.name}`);
+  saveToStorage(inMemoryDb);
+  return { ...newBooking };
+}
+
+/**
+ * Exclusive Admin Allotment Flow
+ * Admin can directly allot components to students, immediately activating custody
+ */
+export async function allotComponentToStudent({ resource_id, student_id, admin_id, start_at, end_at, purpose, quantity = 1 }) {
+  if (!inMemoryDb) await initStore();
+  const admin = await getUserById(admin_id);
+  if (!admin || !Rules.canAllotComponents(admin)) {
+    throw new Error('Unauthorized: Only Administrators have the authority to allot components directly to students.');
   }
 
-  await recordAuditEvent(user.id, eventAction, 'booking', newId, newBooking.decision_reason || `Requested ${resource.name}`);
+  const student = await getUserById(student_id);
+  if (!student) throw new Error('Student account not found.');
+
+  const resource = await getResourceById(resource_id);
+  if (!resource || !resource.active) {
+    throw new Error('Component is currently inactive or not available for allotment.');
+  }
+
+  const newId = inMemoryDb.bookings.reduce((max, b) => Math.max(max, b.id), 0) + 1;
+  const qrToken = `CS-ALLOT-${student.student_id || student.id}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const startDate = start_at ? new Date(start_at).toISOString() : new Date().toISOString();
+  const endDate = end_at ? new Date(end_at).toISOString() : new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+
+  const newBooking = {
+    id: newId,
+    resource_id: Number(resource_id),
+    user_id: Number(student_id),
+    start_at: startDate,
+    end_at: endDate,
+    purpose: purpose ? purpose.trim() : 'Administrative project allotment',
+    status: Rules.BOOKING_STATUSES.ALLOTTED,
+    decision_reason: `Allotted directly by Administrator ${admin.name}`,
+    allotted_by: Number(admin_id),
+    created_at: new Date().toISOString(),
+    checked_out_at: new Date().toISOString(),
+    returned_at: null,
+    qr_token: qrToken,
+    quantity: Number(quantity) || 1
+  };
+
+  inMemoryDb.bookings.push(newBooking);
+
+  if (resource.quantity_available !== undefined && resource.quantity_available > 0) {
+    resource.quantity_available = Math.max(0, resource.quantity_available - (Number(quantity) || 1));
+  }
+
+  await recordAuditEvent(admin_id, 'admin_allotment', 'booking', newId, `Allotted ${resource.name} to ${student.name} (${student.email})`);
   saveToStorage(inMemoryDb);
   return { ...newBooking };
 }
@@ -312,7 +404,6 @@ export async function decideBooking(bookingId, decision, reason, actorId) {
   booking.decision_reason = result.decision_reason;
   await recordAuditEvent(actorId, `booking_${decision}`, 'booking', booking.id, result.decision_reason);
 
-  // If rejected, check if another waitlisted request can be auto-promoted!
   let promoted = null;
   if (decision === Rules.BOOKING_STATUSES.REJECTED) {
     promoted = await tryPromoteWaitlist(booking.resource_id, actorId);
@@ -334,9 +425,8 @@ export async function cancelBooking(bookingId, actorId) {
 
   booking.status = Rules.BOOKING_STATUSES.CANCELLED;
   booking.decision_reason = 'Cancelled by user or administrator.';
-  await recordAuditEvent(actorId, 'booking_cancelled', 'booking', booking.id, 'Booking cancelled by requester.');
+  await recordAuditEvent(actorId, 'booking_cancelled', 'booking', booking.id, 'Booking cancelled.');
 
-  // Try auto-promoting waiting requests
   const promoted = await tryPromoteWaitlist(booking.resource_id, actorId);
   saveToStorage(inMemoryDb);
   return { ...booking, promoted };
@@ -346,8 +436,8 @@ async function tryPromoteWaitlist(resourceId, actorId) {
   const candidate = Rules.findWaitlistCandidateForPromotion(resourceId, inMemoryDb.bookings);
   if (candidate) {
     candidate.status = Rules.BOOKING_STATUSES.PENDING;
-    candidate.decision_reason = 'Auto-promoted from waitlist following slot release. Ready for owner decision.';
-    await recordAuditEvent(actorId || 0, 'waitlist_promoted', 'booking', candidate.id, 'Candidate promoted from waitlist to pending queue.');
+    candidate.decision_reason = 'Auto-promoted from waitlist following slot release.';
+    await recordAuditEvent(actorId || 0, 'waitlist_promoted', 'booking', candidate.id, 'Promoted from waitlist to pending queue.');
     return { ...candidate };
   }
   return null;
@@ -381,7 +471,6 @@ export async function addConditionReport({ booking_id, reporter_id, stage, condi
   inMemoryDb.conditionReports.push(newReport);
   await recordAuditEvent(reporter_id, `condition_${stage}_recorded`, 'booking', booking.id, `${condition}: ${notes}`);
 
-  // Automatically open an Incident if damaged, requiring human review
   let incident = null;
   if (condition === 'damaged') {
     incident = await reportIncident({
@@ -404,7 +493,7 @@ export async function checkoutBooking(bookingId, actorId) {
   const resource = inMemoryDb.resources.find(r => r.id === booking.resource_id);
 
   if (!Rules.canCheckout(actor, booking, inMemoryDb.conditionReports, resource)) {
-    throw new Error('Cannot checkout: Ensure you are authorized and an initial (before) condition report has been logged.');
+    throw new Error('Cannot checkout: Initial condition report must be logged before physical release.');
   }
 
   booking.status = Rules.BOOKING_STATUSES.CHECKED_OUT;
@@ -422,20 +511,24 @@ export async function returnBooking(bookingId, actorId) {
   const resource = inMemoryDb.resources.find(r => r.id === booking.resource_id);
 
   if (!Rules.canReturn(actor, booking, inMemoryDb.conditionReports, resource)) {
-    throw new Error('Cannot complete return: Ensure you are authorized and a final (after) condition report has been logged.');
+    throw new Error('Cannot complete return: Return condition inspection report must be logged first.');
   }
 
   booking.status = Rules.BOOKING_STATUSES.RETURNED;
   booking.returned_at = new Date().toISOString();
+  
+  if (resource && resource.quantity_available !== undefined) {
+    resource.quantity_available = Math.min(resource.quantity_total || 10, resource.quantity_available + (booking.quantity || 1));
+  }
+
   await recordAuditEvent(actorId, 'resource_returned', 'booking', booking.id, 'Return confirmed and recorded in audit log.');
 
-  // Auto promote waitlist if applicable
   const promoted = await tryPromoteWaitlist(booking.resource_id, actorId);
   saveToStorage(inMemoryDb);
   return { ...booking, promoted };
 }
 
-// ----------------- INCIDENTS (HUMAN REVIEW) -----------------
+// ----------------- INCIDENTS -----------------
 
 export async function listIncidents(filter = {}) {
   if (!inMemoryDb) await initStore();
@@ -491,7 +584,7 @@ export async function resolveIncident(incidentId, actorId, resolution) {
   const actor = inMemoryDb.users.find(u => u.id === Number(actorId));
 
   if (!Rules.canResolveIncident(actor, incident, booking, resource)) {
-    throw new Error('Only the resource owner or an administrator can resolve an incident.');
+    throw new Error('Only council volunteers or administrators can resolve an incident.');
   }
 
   if (!resolution || !resolution.trim()) {
@@ -538,7 +631,7 @@ export async function getConditionReports(bookingId = null) {
   return inMemoryDb.conditionReports.map(c => ({ ...c }));
 }
 
-// ----------------- CSV EXPORT (GOVERNANCE) -----------------
+// ----------------- CSV EXPORT -----------------
 
 export async function exportAuditEventsCsv() {
   if (!inMemoryDb) await initStore();
@@ -557,7 +650,7 @@ export async function exportAuditEventsCsv() {
 
 export async function exportBookingsCsv() {
   if (!inMemoryDb) await initStore();
-  const headers = ['id', 'created_at', 'resource_id', 'user_id', 'start_at', 'end_at', 'status', 'decision_reason', 'purpose', 'qr_token'];
+  const headers = ['id', 'created_at', 'resource_id', 'user_id', 'start_at', 'end_at', 'status', 'decision_reason', 'purpose', 'allotted_by', 'qr_token'];
   const rows = inMemoryDb.bookings.map(b => [
     b.id,
     b.created_at,
@@ -568,6 +661,7 @@ export async function exportBookingsCsv() {
     b.status,
     `"${(b.decision_reason || '').replace(/"/g, '""')}"`,
     `"${(b.purpose || '').replace(/"/g, '""')}"`,
+    b.allotted_by || '',
     b.qr_token || ''
   ]);
   return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');

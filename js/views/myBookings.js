@@ -8,11 +8,26 @@
 
 import * as Store from '../store.js';
 import * as Rules from '../rules.js';
+import * as Auth from '../auth.js';
 import { generateQrSvg } from '../qr.js';
 import { escapeHtml, formatDateTime, showToast } from '../ui.js';
 
 export async function renderMyBookings(params, container) {
-  const currentUser = await Store.getCurrentUser();
+  const currentUser = await Auth.getSessionUser();
+  if (!currentUser) {
+    container.innerHTML = `
+      <div class="card-brut" style="max-width: 520px; margin: 4rem auto; text-align: center; padding: 3rem 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+        <h2>Sign In Required</h2>
+        <p style="color: var(--color-muted); margin: 1rem 0 1.5rem;">
+          Please sign in to view your borrowed equipment loans, inspection passes, and chain-of-custody tokens.
+        </p>
+        <a href="#/login" class="btn-brut btn-primary">Sign In →</a>
+      </div>
+    `;
+    return;
+  }
+
   const [userBookings, resources, conditionReports, incidents] = await Promise.all([
     Store.listBookings({ userId: currentUser.id }),
     Store.listResources(),
@@ -31,7 +46,7 @@ export async function renderMyBookings(params, container) {
 
     if (booking.status === Rules.BOOKING_STATUSES.RETURNED) return 6;
     if (hasAfter) return 5;
-    if (booking.status === Rules.BOOKING_STATUSES.CHECKED_OUT) return 4;
+    if (booking.status === Rules.BOOKING_STATUSES.CHECKED_OUT || booking.status === Rules.BOOKING_STATUSES.ALLOTTED) return 4;
     if (hasBefore) return 3;
     if (booking.status === Rules.BOOKING_STATUSES.APPROVED) return 2;
     return 1; // Pending or waitlisted
@@ -80,6 +95,7 @@ export async function renderMyBookings(params, container) {
             pending: 'sticker-yellow',
             waitlisted: 'sticker-yellow',
             approved: 'sticker-mint',
+            allotted: 'sticker-mint',
             checked_out: 'sticker-blue',
             returned: 'sticker-mint',
             rejected: 'sticker-coral',
@@ -94,7 +110,9 @@ export async function renderMyBookings(params, container) {
               <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
                 <div>
                   <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                    <span class="sticker ${statusColors[b.status] || 'sticker-yellow'}">${escapeHtml(b.status)}</span>
+                    <span class="sticker ${statusColors[b.status] || 'sticker-yellow'}">
+                      ${b.status === 'allotted' ? '⚡ ADMIN ALLOTTED' : escapeHtml(b.status)}
+                    </span>
                     ${isOverdue ? '<span class="sticker sticker-coral badge-overdue-pulse">⚠️ OVERDUE</span>' : ''}
                     <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-muted);">ID #${b.id}</span>
                   </div>

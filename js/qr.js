@@ -1,5 +1,5 @@
 /**
- * CampusShare QR Code Generator & Handover Scanner
+ * UniHive QR Code Generator & Handover Scanner
  * Generates vector SVG QR codes client-side with zero external network requests.
  * Uses BarcodeDetector API when available with a manual token input fallback.
  */

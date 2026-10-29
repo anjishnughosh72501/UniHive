@@ -1,138 +1,130 @@
-# CampusShare // Accountable Equipment Lending Network
+# UniHive // Campus Electronics & Hardware Sharing Hub
 
-> **A Neo-Brutalist campus noticeboard and accountability platform for sharing high-value college gear with zero bureaucracy, physical QR chain-of-custody handovers, and human-first governance.**
+> **A Neo-Brutalist campus equipment and electronics locker platform for sharing college hardware, microcontrollers, sensor kits, and batteries with physical chain-of-custody QR handovers, council volunteer inventory management, and direct administrative project allotments.**
 
 ---
 
-## ⚡ What is CampusShare?
+## ⚡ What is UniHive?
 
-CampusShare bridges the gap between idle departmental equipment (oscilloscopes, cinema cameras, drones, 3D printers, workstations) and student project demand. 
+UniHive bridges the gap between college hardware lockers (Arduinos, ESP32s, Raspberry Pis, 3D printing coils, LiPo batteries, oscilloscopes) and student project teams.
 
-Instead of paper sign-out binders or rigid rental software, CampusShare provides:
-1. **Physical Chain-of-Custody (QR Handover):** Borrowers and custodians verify equipment state at pickup and return with cryptographic tokens and SVG QR passes.
-2. **Pre- & Post-Use Inspection Logs:** Photo evidence and condition assessments protect students from unfair blame.
-3. **The Human-Review Guarantee:** Damage or delays never trigger algorithmic penalties or automated fines; all incidents invite collaborative human dialogue with lab directors.
-4. **Advisory Lender Trust Ratings:** On-time returns unlock higher trust tiers (Newcomer → Reliable → Trusted → Campus Legend) with instant auto-approval on open-access gear.
-5. **Interactive 7-Day Availability Grid:** Live calendar slots with click-to-select reservations and conflict detection.
-6. **Campus Sustainability & Impact:** Real-time counters showing shared usage, estimated student cost savings, and avoided manufacturing CO2 emissions.
+1. **Role-Based Architecture:**
+   - **Students:** Browse live component availability with real circuit graphics, submit loan requests, track chain-of-custody, and earn trust ratings.
+   - **Council Volunteers:** Technical council members add/remove components from the locker catalog, review requests, and execute physical check-outs and returns.
+   - **Administrators:** Central faculty/deans with **exclusive authority to directly allot components** to student teams for innovation projects and capstone research, bypassing waiting queues.
+2. **MediaWiki Imageinfo API Integration (`API:Imageinfo`):**
+   - Live hardware product photos dynamically fetched via the [Wikimedia Commons Imageinfo API](https://www.mediawiki.org/wiki/API:Imageinfo).
+   - Displays authentic component photography with proper Creative Commons licensing badges (`CC BY 2.0`, `CC BY-SA 4.0`, `CC0`) and author attributions.
+   - Dual-view toggle on component pages allowing users to switch between **📷 Real Photo (Wikimedia)** and **⚡ Circuit Schematic (SVG)**.
+   - Built-in live image search tool for Council Volunteers adding new hardware to the locker.
+   - Graceful offline fallback to custom vector SVG schematics.
+3. **Physical Chain-of-Custody (QR Handover):**
+   - Borrowers and council volunteers verify equipment state at pickup and return with cryptographic tokens and vector QR passes.
+4. **Direct Administrative Allotment:**
+   - Exclusive feature for administrators to allot high-priority components directly to students with instant confirmation tokens.
+5. **High-Contrast Dark Mode & Default Light Mode:**
+   - Default clean notebook cream theme with a dedicated high-contrast dark theme engineered for maximum legibility and accessibility (WCAG AAA compliant text tokens).
+
+---
+
+## 🔐 Preset Evaluation Credentials
+
+| System Role | Email | Password | Permissions |
+|---|---|---|---|
+| **Administrator** | `admin@unihive.edu` | `Admin@UniHive2025!` | **Direct Student Allotment**, Add/Remove Components, User Governance, CSV Audit Export |
+| **Council Volunteer** | `volunteer@unihive.edu` | `Volunteer@UniHive2025!` | Add/Remove Components, Approve/Reject Requests, QR Handover Checkouts & Returns |
+| **Student** | `student@unihive.edu` | `Student@UniHive2025!` | Browse Inventory & Real Graphics, Request Loans, View Custody Passes |
+
+*(You can also register new Student or Council Volunteer accounts anytime via the Signup page).*
 
 ---
 
 ## 🏗 Architecture & Stack
 
-- **Stack:** Pure Vanilla JavaScript (ES Modules), HTML5, and CSS3.
-- **Zero Build Step:** Runs directly in any modern browser without npm, node, or webpack.
-- **Zero External Dependencies:** Built with zero runtime frameworks. Uses client-side vector SVG QR generation and browser-native APIs (`BarcodeDetector`, `View Transitions API`, `IntersectionObserver`, `Canvas`).
+- **Stack:** Pure Vanilla JavaScript (ES Modules), Semantic HTML5, and Neo-Brutalist CSS3.
+- **Zero Build Step:** Runs directly in any modern browser without npm, node, or bundlers.
+- **Client-Side Cryptography:** Password hashing using Web Crypto API (`SHA-256`).
 - **Data Layer (`js/store.js`):** Asynchronous storage layer with `localStorage` persistence and fallback in-memory database.
-- **Rules Engine (`js/rules.js`):** 100% pure functional state machine with comprehensive unit test coverage.
+- **Rules Engine (`js/rules.js`):** Pure functional state machine for permissions, conflict resolution, and trust scoring.
 - **PWA Ready:** Includes `manifest.json` and `sw.js` offline cache service worker.
 
 ```
-CampusShare-main/
+UniHive/
 ├── index.html                   # Semantic HTML5 shell & View Transitions root
 ├── manifest.json                # PWA manifest
 ├── sw.js                        # Offline service worker cache
-├── netlify.toml                 # Netlify deployment configuration
+├── netlify.toml                 # Static deployment configuration
 ├── .github/workflows/deploy.yml # GitHub Pages automated deployment
 ├── css/
-│   ├── tokens.css               # Neo-brutalist color tokens, borders, and shadows
+│   ├── tokens.css               # Neo-brutalist color tokens & high-contrast dark mode
 │   ├── base.css                 # 24px dot grid, typography & accessibility
-│   ├── components.css           # Buttons (.btn-brut), cards, stickers, toasts
+│   ├── components.css           # Buttons (.btn-brut), cards, stickers, toasts, dark mode overrides
 │   ├── pages.css                # Collage, calendar grid, impact layout
 │   └── motion.css               # View Transitions & reduced-motion queries
 ├── js/
 │   ├── app.js                   # Application bootstrapper & hash router
+│   ├── auth.js                  # Authentication, SHA-256 hashing & session guards
+│   ├── media.js                 # MediaWiki Imageinfo API integration & image search
 │   ├── store.js                 # Async storage, CRUD operations & CSV exports
 │   ├── rules.js                 # Pure functional rules engine & trust scoring
-│   ├── seed.js                  # 15 assets, 12 users, 34 bookings, 3 incidents
+│   ├── seed.js                  # Electronics components, SVG circuit art & preset users
 │   ├── qr.js                    # Vector SVG QR generator & camera scanner
-│   ├── ui.js                    # Toast system, theme toggle & counters
+│   ├── ui.js                    # Toast system, theme toggle (default light) & counters
 │   └── views/                   # Route views
 │       ├── explore.js           # Noticeboard catalog & live search
-│       ├── resourceDetail.js    # 7-day calendar, tabs & smart hints
-│       ├── myBookings.js        # Handover stepper, QR pass & photo evidence
-│       ├── ownerDashboard.js    # Custodian ops, overdue alerts & QR scanner
+│       ├── login.js             # Authentication login with quick-fill presets
+│       ├── signup.js            # Student & Council Volunteer registration
+│       ├── volunteer.js         # Council Volunteer component & handover ops
+│       ├── admin.js             # Exclusive Direct Allotment & inventory governance
+│       ├── resourceDetail.js    # Component specs, 7-day calendar & request flow
+│       ├── myBookings.js        # Handover stepper, QR pass & inspection logs
 │       ├── incidents.js         # Human review resolution desk
 │       ├── activity.js          # Day-grouped immutable audit log
-│       ├── impact.js            # Sustainability metrics & 30-day SVG chart
-│       ├── admin.js             # User certification & inventory management
+│       ├── impact.js            # Sustainability metrics & CO2 avoidance
 │       └── notifications.js     # User update stream
-├── assets/                      # Vector SVG icons & graphics
-└── tests/
-    └── rules.test.html          # Automated browser test suite
+└── assets/                      # Vector SVG icons & graphics
 ```
 
 ---
 
 ## 🚀 How to Run Locally
 
-Because CampusShare is a static web application, you can run it with any local static server:
+### 1-Click Startup (Recommended)
+Run the automated startup script:
 
-```powershell
-# Option 1: Python 3
+```bash
+python start.py
+```
+This automatically selects an available port, ensures proper JavaScript module MIME types, launches UniHive in your default browser, and displays preset credentials in the terminal.
+
+### Alternative Options
+```bash
+# Python simple server
 python -m http.server 8000
 
-# Option 2: Node npx
+# Node npx
 npx serve .
 ```
 
 Open your browser to:
 - **Application:** `http://localhost:8000/`
-- **Rules Unit Test Suite:** `http://localhost:8000/tests/rules.test.html`
 
 ---
 
-## 🌐 How to Deploy in 30 Seconds
+## ⏱ Quick Evaluation & Testing Tour (3 Minutes)
 
-1. **Netlify Drop:** Drag and drop this folder directly into [Netlify Drop](https://app.netlify.com/drop).
-2. **GitHub Pages:** Push to your repository and select **Settings > Pages > Deploy from branch (main / root)**.
-3. **Vercel:** Run `vercel deploy` or import the GitHub repository.
-
----
-
-## ⏱ The 3-Minute Live Judge Journey
-
-| Elapsed | Persona | Screen & Action | Key Message / Hackathon Beat |
-| :--- | :--- | :--- | :--- |
-| **0:00** | Intro | Noticeboard Hero (`#/`) | *"A $1,500 oscilloscope sits idle in Room 204 while students struggle to buy their own. CampusShare unlocks campus hardware with accountability."* |
-| **0:25** | Student (Maya) | Resource Detail (`#/resource/4`) | Open Sony Cinema Rig. Demonstrate the **7-Day Availability Grid**; click a green slot to automatically populate the booking window. |
-| **0:50** | Student (Maya) | Resource Detail (`#/resource/4`) | Submit request. Point out **Instant Auto-Approval** triggered by Maya's *Trusted* standing (Trust Score: 50+). |
-| **1:15** | Student (Maya) | My Loans (`#/my-bookings`) | Review the 6-stage handover stepper. Log pre-handover condition with photo inspection. Reveal the **Digital QR Handover Pass**. |
-| **1:40** | Owner (Dr. Miller) | Custodian Ops (`#/owner`) | Switch persona in navbar. Notice the red **Overdue Equipment Alert** (Marcus Vance's overdue oscilloscope). Click **📷 Scan Handover QR Pass** and enter token `CS-QR-BK2-3419` to complete handover in 1 click! |
-| **2:10** | Owner / Student | Incidents Desk (`#/incidents`) | Show resolved damage incident. Emphasize: *"No automatic fines or credit penalties. Humans review the report, agree on learning outcomes, and preserve trust."* |
-| **2:35** | Dean (Alice) | Impact Dashboard (`#/impact`) | View real-time counters: completed loans, department financial savings, avoided manufacturing CO2, and the 30-day SVG activity graph. |
-| **2:50** | Admin | Admin Console (`#/admin`) | Show instant CSV export of audit events and user certification grants. |
-
----
-
-## 📋 Pre-Seeded Hackathon Personas
-
-Switch between personas in the top-right navbar pill or with the quick-switch bar on the home screen:
-
-1. **Maya Chen** (`Student`): Certified in Electronics & 3D Printers. High trust score (50+ pts), eligible for instant auto-approvals.
-2. **Marcus Vance** (`Student`): Has an active overdue loan (Digital Storage Oscilloscope) and past resolved incident for inspection.
-3. **Dr. Aris Miller** (`Custodian / Owner`): Engineering Makerspace Director. Manages oscilloscopes, FPGA boards, and 3D printers.
-4. **Sarah Jenkins** (`Custodian / Owner`): Media Center Coordinator. Manages cinema cameras, audio rigs, and drones.
-5. **Dean Alice Cooper** (`Administrator`): Global facilities supervisor. Grants training certifications, archives assets, and exports audit CSVs.
-
----
-
-## 🧪 Specification Unit Tests
-
-The test suite at [`tests/rules.test.html`](file:///c:/A%20folder/Code%20Projects/SIH/CampusShare-main/tests/rules.test.html) asserts the correctness of all functional business rules:
-- [x] Date range overlap detection and slot boundary conditions
-- [x] Automatic waitlist placement on schedule conflict
-- [x] Auto-promotion of the oldest compatible waitlisted request upon cancellation or return
-- [x] Fair-use limit enforcement (max 3 active bookings per student)
-- [x] Training gate authorization for certified vs. non-certified categories
-- [x] Condition inspection report enforcement prior to checkout and return
-- [x] Overdue equipment calculation
-- [x] Advisory trust score updates (+10 good, +3 minor issue, -10 late, -15 confirmed damage)
-- [x] Human review governance principles
-
----
-
-## 🤝 Contribution & AI Assistance Disclosure
-
-- **AI Assistance:** Gemini Advanced Agentic Coding Assistant was utilized for scaffold refactoring, pure function business rules extraction from the Flask reference, Neo-Brutalist CSS tokens authoring, and test assertions generation.
-- **Human Verification:** All business logic, state machines, permission checks, and mobile responsiveness were independently reviewed and verified.
+1. **Catalog View (`#/`):**
+   - Check available electronics hardware (Arduino, ESP32, Raspberry Pi, Toroid Coils, LiPo Batteries, Oscilloscopes) with real vector illustrations in clean light mode by default.
+2. **Toggle Dark Mode:**
+   - Click `☾ DARK` in the top right to verify the high-contrast slate and crisp white/slate text styling.
+3. **Admin Allotment (`#/admin`):**
+   - Sign in as Admin (`admin@unihive.edu` / `Admin@UniHive2025!`).
+   - Use the **Direct Student Allotment** console to immediately assign a component to student Maya Chen for the capstone robotics project.
+4. **Council Volunteer Ops (`#/volunteer`):**
+   - Sign in as Council Volunteer (`volunteer@unihive.edu` / `Volunteer@UniHive2025!`).
+   - Click **+ Add New Component** to register new hardware into the locker.
+   - Use the **Remove** button to take obsolete components out of circulation.
+   - Review pending requests and conduct physical check-outs/returns.
+5. **Student Experience (`#/my-bookings`):**
+   - Sign in as Student (`student@unihive.edu` / `Student@UniHive2025!`).
+   - View the active loan, the **⚡ ADMIN ALLOTTED** badge, and the digital QR pass.

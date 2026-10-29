@@ -1,7 +1,7 @@
 {
-  "name": "CampusShare // Accountable Equipment Lending",
-  "short_name": "CampusShare",
-  "description": "Accountable campus equipment-sharing network with QR handovers, trust ratings, and collaborative human review.",
+  "name": "UniHive // Campus Electronics & Hardware Hub",
+  "short_name": "UniHive",
+  "description": "UniHive accountable campus electronics and hardware sharing network with chain-of-custody tokens, trust ratings, and administrative project allotments.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#FFF8E7",

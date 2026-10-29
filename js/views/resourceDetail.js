@@ -9,16 +9,17 @@
 
 import * as Store from '../store.js';
 import * as Rules from '../rules.js';
+import * as Auth from '../auth.js';
 import { escapeHtml, formatDateTime, formatCurrency, showToast } from '../ui.js';
 
 export async function renderResourceDetail(params, container) {
   const resourceId = Number(params.id);
-  const [resource, allResources, currentUser, bookings, userBookings, incidents, conditionReports] = await Promise.all([
+  const currentUser = await Auth.getSessionUser();
+  const [resource, allResources, bookings, userBookings, incidents, conditionReports] = await Promise.all([
     Store.getResourceById(resourceId),
     Store.listResources({ active: true }),
-    Store.getCurrentUser(),
     Store.listBookings({ resourceId }),
-    Store.listBookings({ userId: (await Store.getCurrentUser()).id }),
+    currentUser ? Store.listBookings({ userId: currentUser.id }) : Promise.resolve([]),
     Store.listIncidents(),
     Store.getConditionReports()
   ]);
@@ -27,22 +28,22 @@ export async function renderResourceDetail(params, container) {
     container.innerHTML = `
       <div class="card-brut" style="text-align: center; padding: 4rem 2rem;">
         <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
-        <h2>Equipment Item Not Found</h2>
-        <p style="color: var(--color-muted); margin: 1rem 0 2rem;">The requested equipment item does not exist or has been retired.</p>
+        <h2>Component Not Found</h2>
+        <p style="color: var(--color-muted); margin: 1rem 0 2rem;">The requested component does not exist or has been retired.</p>
         <a href="#/" class="btn-brut btn-primary">← Return to Locker</a>
       </div>
     `;
     return;
   }
 
-  const owner = await Store.getUserById(resource.owner_id);
-  const isTrained = !resource.training_required || Rules.isUserTrainedForCategory(currentUser, resource.category);
+  const owner = resource.owner_id ? await Store.getUserById(resource.owner_id) : null;
+  const isTrained = !resource.training_required || (currentUser && Rules.isUserTrainedForCategory(currentUser, resource.category));
   const activeUserBookingsCount = userBookings.filter(b => 
-    [Rules.BOOKING_STATUSES.PENDING, Rules.BOOKING_STATUSES.APPROVED, Rules.BOOKING_STATUSES.CHECKED_OUT, Rules.BOOKING_STATUSES.WAITLISTED].includes(b.status)
+    [Rules.BOOKING_STATUSES.PENDING, Rules.BOOKING_STATUSES.APPROVED, Rules.BOOKING_STATUSES.CHECKED_OUT, Rules.BOOKING_STATUSES.WAITLISTED, Rules.BOOKING_STATUSES.ALLOTTED].includes(b.status)
   ).length;
 
-  const trust = Rules.calculateTrustScore(currentUser.id, userBookings, incidents, conditionReports);
-  const isAutoApproveEligible = Rules.canAutoApprove(currentUser, resource, trust, false);
+  const trust = currentUser ? Rules.calculateTrustScore(currentUser.id, userBookings, incidents, conditionReports) : { score: 25, level: 'Newcomer', badgeClass: 'sticker-blue' };
+  const isAutoApproveEligible = currentUser ? Rules.canAutoApprove(currentUser, resource, trust, false) : false;
 
   // Default start/end (Tomorrow 10:00 to 17:00)
   const tomorrow = new Date();
@@ -187,9 +188,49 @@ export async function renderResourceDetail(params, container) {
       <!-- Left Column: Media & Specifications & Calendar -->
       <div>
         <div class="card-brut" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
-          <div style="height: 300px; background: var(--color-paper); border-bottom: var(--border-thick);">
+          <!-- Media Header Toolbar -->
+          <div style="background: var(--color-ink); color: #fff; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span>VIEW MODE:</span>
+              <button type="button" id="btn-show-photo" class="btn-brut btn-sm btn-primary" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; min-height: 28px;">
+                📷 Real Photo (Wikimedia)
+              </button>
+              <button type="button" id="btn-show-svg" class="btn-brut btn-sm btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; min-height: 28px;">
+                ⚡ Circuit Art (SVG)
+              </button>
+            </div>
+            ${resource.wikimedia_file ? `
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="sticker sticker-white" style="font-size: 0.65rem; padding: 1px 5px;">${escapeHtml(resource.image_license || 'CC')}</span>
+                <a href="${escapeHtml(resource.description_url || `https://commons.wikimedia.org/wiki/${encodeURIComponent(resource.wikimedia_file)}`)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: underline;">
+                  MediaWiki Imageinfo ↗
+                </a>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Photo View Container -->
+          <div id="media-photo-view" style="min-height: 320px; background: #ffffff; border-bottom: var(--border-thick); display: flex; align-items: center; justify-content: center; position: relative; padding: 1rem;">
+            ${resource.image_url ? `
+              <img src="${escapeHtml(resource.image_url)}" alt="${escapeHtml(resource.name)}" style="max-height: 320px; max-width: 100%; object-fit: contain;" />
+            ` : `
+              <div style="padding: 2rem; text-align: center; color: var(--color-muted);">
+                No photograph available. Displaying vector schematic below.
+              </div>
+            `}
+          </div>
+
+          <!-- Circuit SVG View Container -->
+          <div id="media-svg-view" style="display: none; height: 320px; background: var(--color-paper); border-bottom: var(--border-thick);">
             ${resource.svgArt}
           </div>
+
+          ${resource.image_artist ? `
+            <div style="background: var(--color-paper); padding: 0.4rem 1rem; border-bottom: var(--border-thin); font-size: 0.75rem; font-family: var(--font-mono); color: var(--color-muted); display: flex; justify-content: space-between; flex-wrap: wrap;">
+              <span>Attribution: <strong>${escapeHtml(resource.image_artist)}</strong></span>
+              <span>License: <strong>${escapeHtml(resource.image_license || 'Creative Commons')}</strong> via Wikimedia Commons</span>
+            </div>
+          ` : ''}
           <div style="padding: 1.75rem;">
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
               <span class="sticker sticker-yellow">${escapeHtml(resource.category)}</span>
@@ -311,58 +352,102 @@ export async function renderResourceDetail(params, container) {
         </div>
 
         <div class="card-brut" style="position: sticky; top: 5.5rem;">
-          <h3 style="margin-bottom: 0.25rem;">Reserve Equipment</h3>
-          <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1.25rem;">Fair-use active requests: ${activeUserBookingsCount}/3 slots</p>
+          <h3 style="margin-bottom: 0.25rem;">Reserve Component</h3>
 
-          ${isAutoApproveEligible ? `
-            <div style="background: rgba(107, 203, 119, 0.2); border: 2px solid var(--color-mint); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.85rem;">
-              ⚡ <strong>Instant Auto-Approval Eligible!</strong><br>
-              Because your Trust Level is <strong>${trust.level}</strong> and this resource does not require training, your request will be approved instantly!
+          ${currentUser && currentUser.role === 'admin' ? `
+            <div style="background: var(--color-paper); border: var(--border-medium); padding: 0.85rem; margin-bottom: 1rem; border-radius: var(--radius-sm);">
+              <strong>🏛️ Administrator Privilege:</strong>
+              <div style="font-size: 0.8rem; color: var(--color-muted); margin: 0.25rem 0 0.5rem;">You can directly assign and allot this component to any student without waiting.</div>
+              <a href="#/admin" class="btn-brut btn-sm btn-primary">Go to Direct Allotment Console →</a>
             </div>
           ` : ''}
 
-          ${!isTrained ? `
-            <div style="background: var(--color-coral); border: var(--border-thick); padding: 1rem; font-weight: 700; margin-bottom: 1.25rem; font-size: 0.9rem;">
-              ⚠️ Training Certification Required<br>
-              <span style="font-weight: 400; font-size: 0.85rem;">You need verified training for <strong>${escapeHtml(resource.category)}</strong> before borrowing this unit. Contact the lab manager or switch to an authorized demo profile.</span>
+          ${!currentUser ? `
+            <div style="background: var(--color-paper); border: var(--border-medium); padding: 1.5rem; text-align: center; border-radius: var(--radius-sm);">
+              <h4 style="margin-bottom: 0.5rem;">Sign In to Request</h4>
+              <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1.25rem;">
+                You must be logged in as a registered student to request this component from the locker.
+              </p>
+              <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                <a href="#/login" class="btn-brut btn-primary">Sign In</a>
+                <a href="#/signup" class="btn-brut btn-secondary">Sign Up</a>
+              </div>
             </div>
-          ` : ''}
+          ` : `
+            <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1.25rem;">Active requests: ${activeUserBookingsCount}/4 fair-use slots</p>
 
-          ${activeUserBookingsCount >= 3 ? `
-            <div style="background: var(--color-primary); border: var(--border-thick); padding: 1rem; font-weight: 700; margin-bottom: 1.25rem; font-size: 0.9rem;">
-              ⚠️ Active Request Limit Reached<br>
-              <span style="font-weight: 400; font-size: 0.85rem;">To ensure fair access across campus, users can have at most 3 active or pending bookings.</span>
-            </div>
-          ` : ''}
+            ${isAutoApproveEligible ? `
+              <div style="background: rgba(107, 203, 119, 0.2); border: 2px solid var(--color-mint); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.85rem;">
+                ⚡ <strong>Instant Auto-Approval Eligible!</strong><br>
+                Because your Trust Level is <strong>${trust.level}</strong> and this component does not require training, your request will be approved instantly!
+              </div>
+            ` : ''}
 
-          <form id="request-booking-form">
-            <div class="form-group">
-              <label class="form-label" for="booking-start">Borrow Date & Time</label>
-              <input type="datetime-local" id="booking-start" class="input-brut" value="${defaultStart}" required />
-            </div>
+            ${!isTrained ? `
+              <div style="background: var(--color-coral); border: var(--border-thick); padding: 1rem; font-weight: 700; margin-bottom: 1.25rem; font-size: 0.9rem;">
+                ⚠️ Lab Certification Required<br>
+                <span style="font-weight: 400; font-size: 0.85rem;">You need verified training for <strong>${escapeHtml(resource.category)}</strong> before borrowing this unit. Contact a council volunteer.</span>
+              </div>
+            ` : ''}
 
-            <div class="form-group">
-              <label class="form-label" for="booking-end">Expected Return</label>
-              <input type="datetime-local" id="booking-end" class="input-brut" value="${defaultEnd}" required />
-            </div>
+            ${activeUserBookingsCount >= 4 ? `
+              <div style="background: var(--color-primary); border: var(--border-thick); padding: 1rem; font-weight: 700; margin-bottom: 1.25rem; font-size: 0.9rem;">
+                ⚠️ Active Request Limit Reached<br>
+                <span style="font-weight: 400; font-size: 0.85rem;">To ensure fair access across campus, users can have at most 4 active or pending bookings.</span>
+              </div>
+            ` : ''}
 
-            <div class="form-group">
-              <label class="form-label" for="booking-purpose">Project Purpose</label>
-              <textarea id="booking-purpose" class="textarea-brut" rows="3" placeholder="Specify course, project, or event purpose..." required></textarea>
-            </div>
+            <form id="request-booking-form">
+              <div class="form-group">
+                <label class="form-label" for="booking-start">Borrow Date & Time</label>
+                <input type="datetime-local" id="booking-start" class="input-brut" value="${defaultStart}" required />
+              </div>
 
-            <div id="conflict-warning" style="display: none; background: var(--color-primary); border: var(--border-medium); padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem; font-weight: 700;">
-              ℹ Notice: This slot overlaps an approved reservation. Submitting will place you on the <strong>auto-promoting waitlist</strong>.
-            </div>
+              <div class="form-group">
+                <label class="form-label" for="booking-end">Expected Return</label>
+                <input type="datetime-local" id="booking-end" class="input-brut" value="${defaultEnd}" required />
+              </div>
 
-            <button type="submit" class="btn-brut btn-primary" style="width: 100%;" ${(!isTrained || activeUserBookingsCount >= 3) ? 'disabled' : ''}>
-              ${isAutoApproveEligible ? '⚡ Submit & Instant Auto-Approve →' : 'Submit Borrow Request →'}
-            </button>
-          </form>
+              <div class="form-group">
+                <label class="form-label" for="booking-purpose">Project Purpose</label>
+                <textarea id="booking-purpose" class="textarea-brut" rows="3" placeholder="Specify course, project, or event purpose..." required></textarea>
+              </div>
+
+              <div id="conflict-warning" style="display: none; background: var(--color-primary); border: var(--border-medium); padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem; font-weight: 700;">
+                ℹ Notice: This slot overlaps an approved reservation. Submitting will place you on the <strong>auto-promoting waitlist</strong>.
+              </div>
+
+              <button type="submit" class="btn-brut btn-primary" style="width: 100%;" ${(!isTrained || activeUserBookingsCount >= 4) ? 'disabled' : ''}>
+                ${isAutoApproveEligible ? '⚡ Submit & Instant Auto-Approve →' : 'Submit Borrow Request →'}
+              </button>
+            </form>
+          `}
         </div>
       </div>
     </div>
   `;
+
+  // Media View Mode switcher (Real Wikimedia Photo vs Circuit SVG)
+  const btnShowPhoto = container.querySelector('#btn-show-photo');
+  const btnShowSvg = container.querySelector('#btn-show-svg');
+  const photoView = container.querySelector('#media-photo-view');
+  const svgView = container.querySelector('#media-svg-view');
+
+  if (btnShowPhoto && btnShowSvg && photoView && svgView) {
+    btnShowPhoto.addEventListener('click', () => {
+      photoView.style.display = 'flex';
+      svgView.style.display = 'none';
+      btnShowPhoto.classList.replace('btn-secondary', 'btn-primary');
+      btnShowSvg.classList.replace('btn-primary', 'btn-secondary');
+    });
+
+    btnShowSvg.addEventListener('click', () => {
+      photoView.style.display = 'none';
+      svgView.style.display = 'block';
+      btnShowSvg.classList.replace('btn-secondary', 'btn-primary');
+      btnShowPhoto.classList.replace('btn-primary', 'btn-secondary');
+    });
+  }
 
   // Attach tab switching handlers
   const tabButtons = container.querySelectorAll('.tab-btn');

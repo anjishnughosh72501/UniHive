@@ -113,9 +113,10 @@ export function formatCurrency(amount) {
 
 /**
  * Theme switcher management
+ * Explicitly defaults to light mode for crisp contrast
  */
 export function initTheme() {
-  const THEME_KEY = 'campusshare_theme';
+  const THEME_KEY = 'unihive_theme';
   const toggleBtn = document.getElementById('theme-toggle-btn');
 
   const applyTheme = (theme) => {
@@ -134,9 +135,9 @@ export function initTheme() {
     savedTheme = localStorage.getItem(THEME_KEY);
   } catch (e) {}
 
+  // Explicitly default to 'light' mode as requested
   if (!savedTheme) {
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    savedTheme = prefersDark ? 'dark' : 'light';
+    savedTheme = 'light';
   }
 
   applyTheme(savedTheme);

@@ -1,17 +1,19 @@
 /**
- * Explore / Noticeboard Catalog View
- * Neo-Brutalist campus noticeboard with collage, live filtering, and quick persona switcher.
+ * Explore / Component Catalog View
+ * Neo-Brutalist campus noticeboard showcasing available electronics hardware,
+ * microcontrollers, batteries, coils, sensors, and lab equipment with accurate SVG illustrations.
  */
 
 import * as Store from '../store.js';
 import * as Rules from '../rules.js';
+import * as Auth from '../auth.js';
 import { escapeHtml, formatDateTime } from '../ui.js';
 
 export async function renderExplore(params, container) {
   const [resources, allBookings, currentUser] = await Promise.all([
     Store.listResources({ active: true }),
     Store.listBookings(),
-    Store.getCurrentUser()
+    Auth.getSessionUser()
   ]);
 
   const categories = Array.from(new Set(resources.map(r => r.category))).sort();
@@ -21,22 +23,25 @@ export async function renderExplore(params, container) {
   function getAvailability(resource) {
     const activeBooking = allBookings.find(b => 
       b.resource_id === resource.id &&
-      (b.status === Rules.BOOKING_STATUSES.APPROVED || b.status === Rules.BOOKING_STATUSES.CHECKED_OUT)
+      (b.status === Rules.BOOKING_STATUSES.APPROVED || b.status === Rules.BOOKING_STATUSES.CHECKED_OUT || b.status === Rules.BOOKING_STATUSES.ALLOTTED)
     );
 
-    if (!activeBooking) {
-      return { status: 'free', text: 'Free now', dotClass: 'avail-free' };
+    const qtyAvail = resource.quantity_available !== undefined ? resource.quantity_available : 1;
+    const qtyTotal = resource.quantity_total || 1;
+
+    if (qtyAvail > 0) {
+      return { 
+        status: 'free', 
+        text: `${qtyAvail} of ${qtyTotal} Available`, 
+        dotClass: 'avail-free' 
+      };
     }
 
-    if (Rules.isOverdue(activeBooking)) {
-      return { status: 'overdue', text: 'Overdue return', dotClass: 'avail-overdue' };
+    if (activeBooking && Rules.isOverdue(activeBooking)) {
+      return { status: 'overdue', text: 'Overdue for return', dotClass: 'avail-overdue' };
     }
 
-    if (activeBooking.status === Rules.BOOKING_STATUSES.CHECKED_OUT) {
-      return { status: 'booked', text: `In use until ${formatDateTime(activeBooking.end_at)}`, dotClass: 'avail-booked' };
-    }
-
-    return { status: 'booked', text: `Reserved from ${formatDateTime(activeBooking.start_at)}`, dotClass: 'avail-booked' };
+    return { status: 'booked', text: `All ${qtyTotal} Units in Field`, dotClass: 'avail-booked' };
   }
 
   function filterResources() {
@@ -46,6 +51,7 @@ export async function renderExplore(params, container) {
         r.name.toLowerCase().includes(searchQuery) ||
         r.description.toLowerCase().includes(searchQuery) ||
         r.location.toLowerCase().includes(searchQuery) ||
+        (r.component_code && r.component_code.toLowerCase().includes(searchQuery)) ||
         (r.tags && r.tags.some(t => t.toLowerCase().includes(searchQuery)));
       return matchCat && matchQuery;
     });
@@ -63,7 +69,7 @@ export async function renderExplore(params, container) {
     }
 
     const list = filterResources();
-    if (countEl) countEl.textContent = `${list.length} item${list.length === 1 ? '' : 's'} available on campus`;
+    if (countEl) countEl.textContent = `${list.length} component${list.length === 1 ? '' : 's'} available in locker`;
 
     if (!list.length) {
       grid.innerHTML = `
@@ -73,12 +79,12 @@ export async function renderExplore(params, container) {
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             <line x1="8" y1="11" x2="14" y2="11"></line>
           </svg>
-          <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">No Equipment Found</h3>
+          <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">No Hardware Found</h3>
           <p style="color: var(--color-muted); max-width: 450px; margin: 0 auto 1.5rem;">
-            No items matched your search query. Try clearing your filters or search keywords.
+            No components matched your search keyword. Try clearing filters or searching for "esp32", "arduino", "battery", or "coil".
           </p>
           <button type="button" class="btn-brut btn-primary" id="btn-reset-filters">
-            Reset All Filters
+            Reset Filters
           </button>
         </div>
       `;
@@ -97,16 +103,31 @@ export async function renderExplore(params, container) {
 
     grid.innerHTML = list.map(r => {
       const avail = getAvailability(r);
-      const isTrained = !r.training_required || Rules.isUserTrainedForCategory(currentUser, r.category);
+      const isTrained = !r.training_required || (currentUser && Rules.isUserTrainedForCategory(currentUser, r.category));
 
       return `
         <article class="card-brut resource-card card-interactive reveal-item">
-          <div class="resource-art">
-            ${r.svgArt || `<div style="font-size:2rem; font-weight:800;">${escapeHtml(r.category)}</div>`}
+          <!-- Component Image Illustration (Wikimedia Imageinfo API with SVG fallback) -->
+          <div class="resource-art" style="overflow: hidden; background: #fff; position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+            ${r.image_url ? `
+              <img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.name)}" loading="lazy" style="width: 100%; height: 210px; object-fit: contain; padding: 0.5rem; background: #fff;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+              <div class="svg-fallback" style="display: none; width: 100%; height: 100%;">
+                ${r.svgArt || `<div style="font-size:1.5rem; font-weight:800; padding:1.5rem;">${escapeHtml(r.category)}</div>`}
+              </div>
+            ` : (r.svgArt || `<div style="font-size:1.5rem; font-weight:800; padding:1.5rem;">${escapeHtml(r.category)}</div>`)}
+            ${r.image_license ? `
+              <span class="sticker sticker-white" style="position: absolute; bottom: 8px; right: 8px; font-size: 0.65rem; padding: 2px 6px; box-shadow: 2px 2px 0 #000; opacity: 0.95; z-index: 2;" title="Verified via Wikimedia Commons API:Imageinfo · ${escapeHtml(r.image_artist || '')}">
+                📷 Wikimedia · ${escapeHtml(r.image_license)}
+              </span>
+            ` : ''}
           </div>
+
           <div class="resource-body">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
-              <span class="sticker sticker-yellow">${escapeHtml(r.category)}</span>
+              <div>
+                <span class="sticker sticker-yellow">${escapeHtml(r.category)}</span>
+                ${r.component_code ? `<span class="sticker sticker-blue" style="font-size:0.65rem; margin-left:0.25rem;">${escapeHtml(r.component_code)}</span>` : ''}
+              </div>
               <div class="availability-pill">
                 <span class="avail-dot ${avail.dotClass}"></span>
                 <span>${escapeHtml(avail.text)}</span>
@@ -121,16 +142,18 @@ export async function renderExplore(params, container) {
 
             <div style="margin-bottom: 0.85rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
               ${r.training_required ? `
-                <span class="sticker ${isTrained ? 'sticker-mint' : 'sticker-coral'}" title="${isTrained ? 'You have verified certification' : 'Training certification required'}">
-                  ${isTrained ? '✓ Certified' : '⚡ Training Required'}
+                <span class="sticker ${isTrained ? 'sticker-mint' : 'sticker-coral'}" title="${isTrained ? 'Certified' : 'Training certification required'}">
+                  ${isTrained ? '✓ Certified' : '⚡ Lab Cert Required'}
                 </span>
-              ` : '<span class="sticker sticker-mint" style="font-size:0.65rem;">Open Access</span>'}
+              ` : '<span class="sticker sticker-mint" style="font-size:0.65rem;">Open Checkout</span>'}
               ${r.tags ? r.tags.map(t => `<span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--color-muted);">#${escapeHtml(t)}</span>`).join(' ') : ''}
             </div>
 
             <div class="resource-meta">
               <span>📍 ${escapeHtml(r.location)}</span>
-              <a href="#/resource/${r.id}" class="btn-brut btn-sm btn-primary">Details & Request →</a>
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <a href="#/resource/${r.id}" class="btn-brut btn-sm btn-primary">Details & Request →</a>
+              </div>
             </div>
           </div>
         </article>
@@ -148,10 +171,10 @@ export async function renderExplore(params, container) {
       <div class="hero-inner">
         <div>
           <div style="margin-bottom: 0.75rem;">
-            <span class="sticker sticker-primary">DEMO HACKATHON EDITION // VERIFIED GEAR LOCKER</span>
+            <span class="sticker sticker-primary">CAMPUS COMPONENT HUB // SMART INVENTORY</span>
           </div>
           <h1 id="hero-title" class="hero-title">
-            Campus gear, 
+            Campus hardware, 
             <span class="highlight-doodle">
               accountably
               <svg class="doodle-svg" viewBox="0 0 160 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -162,101 +185,79 @@ export async function renderExplore(params, container) {
             shared.
           </h1>
           <p class="hero-lead">
-            Borrow high-value oscilloscopes, cinema cameras, drones and 3D printers with peer verification, physical QR handovers, and clear condition records.
+            Access microcontrollers (Arduino, ESP32, Raspberry Pi), LiPo battery packs, 3D printing coils, sensors, and testing equipment for student innovation and capstone teams.
           </p>
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-            <a href="#/my-bookings" class="btn-brut btn-primary">My Borrowed Gear →</a>
-            <a href="#/impact" class="btn-brut btn-secondary">View Impact Stats</a>
+            ${currentUser ? `
+              <a href="#/my-bookings" class="btn-brut btn-primary">My Active Loans →</a>
+              ${currentUser.role === 'admin' ? '<a href="#/admin" class="btn-brut btn-secondary">Admin Allotment Console</a>' : ''}
+              ${currentUser.role === 'volunteer' ? '<a href="#/volunteer" class="btn-brut btn-secondary">Council Volunteer Ops</a>' : ''}
+            ` : `
+              <a href="#/signup" class="btn-brut btn-primary">Join UniHive →</a>
+              <a href="#/login" class="btn-brut btn-secondary">Sign In</a>
+            `}
           </div>
         </div>
 
-        <!-- Right Side: College Noticeboard Tilted Sticky Note Cards Collage -->
+        <!-- Right Side: Noticeboard Tilted Sticky Note Cards Collage -->
         <div class="collage-container" aria-hidden="true">
           <div class="floating-shape floating-circle"></div>
           <div class="floating-shape floating-triangle"></div>
 
-          <!-- Sticky Note 1: Oscilloscope preview -->
+          <!-- Sticky Note 1: Arduino Uno -->
           <div class="sticky-note sticky-note-1" onclick="window.location.hash='#/resource/1'">
-            <div style="font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700; color: #555;">LAB NOTICE // HALL B204</div>
-            <div style="font-family: var(--font-heading); font-weight: 800; font-size: 0.95rem; margin: 0.25rem 0;">100MHz Oscilloscope</div>
-            <div style="font-size: 0.75rem; color: #333;">Dual-channel test bench probe kit.</div>
-            <span class="sticker sticker-mint" style="font-size: 0.65rem; margin-top: 0.5rem;">Free to Request</span>
+            <div style="font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700; color: #555;">BENCH 3 // CS-ARD-01</div>
+            <div style="font-family: var(--font-heading); font-weight: 800; font-size: 0.95rem; margin: 0.25rem 0;">Arduino Uno R3</div>
+            <div style="font-size: 0.75rem; color: #333;">ATmega328P DIP board.</div>
+            <span class="sticker sticker-mint" style="font-size: 0.65rem; margin-top: 0.5rem;">In Stock</span>
           </div>
 
-          <!-- Sticky Note 2: Camera preview -->
-          <div class="sticky-note sticky-note-2" onclick="window.location.hash='#/resource/4'">
-            <div style="font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700; color: #555;">MEDIA ARTS // STUDIO C</div>
-            <div style="font-family: var(--font-heading); font-weight: 800; font-size: 0.95rem; margin: 0.25rem 0;">Sony A7 IV Cinema</div>
-            <div style="font-size: 0.75rem; color: #333;">24-70mm f/2.8 GM rig ready.</div>
+          <!-- Sticky Note 2: ESP32 -->
+          <div class="sticky-note sticky-note-2" onclick="window.location.hash='#/resource/2'">
+            <div style="font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700; color: #555;">IOT LAB // CS-ESP-02</div>
+            <div style="font-family: var(--font-heading); font-weight: 800; font-size: 0.95rem; margin: 0.25rem 0;">ESP32 DevKit V1</div>
+            <div style="font-size: 0.75rem; color: #333;">Wi-Fi + BLE 4.2 Module.</div>
             <span class="sticker sticker-yellow" style="font-size: 0.65rem; margin-top: 0.5rem;">High Demand</span>
           </div>
 
-          <!-- Sticky Note 3: 3D Printer preview -->
-          <div class="sticky-note sticky-note-3" onclick="window.location.hash='#/resource/10'">
-            <div style="font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700; color: #555;">MAKERSPACE // BAY 4</div>
-            <div style="font-family: var(--font-heading); font-weight: 800; font-size: 0.95rem; margin: 0.25rem 0;">Bambu Lab X1 Carbon</div>
-            <div style="font-size: 0.75rem; color: #333;">Multi-material PETG/CF.</div>
-            <span class="sticker sticker-lilac" style="font-size: 0.65rem; margin-top: 0.5rem;">Training Req.</span>
+          <!-- Sticky Note 3: Toroid Coil -->
+          <div class="sticky-note sticky-note-3" onclick="window.location.hash='#/resource/4'">
+            <div style="font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700; color: #555;">POWER BAY // CS-COIL-04</div>
+            <div style="font-family: var(--font-heading); font-weight: 800; font-size: 0.95rem; margin: 0.25rem 0;">Toroid Coil Inductor</div>
+            <div style="font-size: 0.75rem; color: #333;">220μH Ferrite Ring Coil.</div>
+            <span class="sticker sticker-lilac" style="font-size: 0.65rem; margin-top: 0.5rem;">Prototyping</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Scrolling Marquee of Category Names -->
+    <!-- Scrolling Marquee of Hardware Components -->
     <div class="marquee-bar" aria-hidden="true">
       <div class="marquee-content">
-        LAB KITS • CINEMA RIGS • FIELD AUDIO • 3D PRINTERS • AERIAL DRONES • CAD WORKSTATIONS • ATHLETIC GEAR • CHAIN-OF-CUSTODY HANDOVERS • 
-        LAB KITS • CINEMA RIGS • FIELD AUDIO • 3D PRINTERS • AERIAL DRONES • CAD WORKSTATIONS • ATHLETIC GEAR • CHAIN-OF-CUSTODY HANDOVERS • 
+        ARDUINO UNO • ESP32 • RASPBERRY PI 4B • TOROID COILS • 3S LIPO BATTERIES • 18650 POWER PACKS • PLA 3D FILAMENT • L298N MOTOR DRIVERS • DIGITAL OSCILLOSCOPES • HC-SR04 SENSORS • 
+        ARDUINO UNO • ESP32 • RASPBERRY PI 4B • TOROID COILS • 3S LIPO BATTERIES • 18650 POWER PACKS • PLA 3D FILAMENT • L298N MOTOR DRIVERS • DIGITAL OSCILLOSCOPES • HC-SR04 SENSORS • 
       </div>
     </div>
-
-    <!-- Quick Persona Switcher Strip for Hackathon Judges -->
-    <section class="card-brut" style="background: var(--color-paper); margin-bottom: 2.5rem; padding: 1.25rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
-        <div>
-          <strong style="font-family: var(--font-heading); font-size: 1rem;">⚡ Quick Hackathon Role Demo:</strong>
-          <span style="font-size: 0.85rem; color: var(--color-muted); margin-left: 0.5rem;">Jump instantly between student, owner, and admin perspectives:</span>
-        </div>
-        <span class="sticker sticker-blue">Active: ${escapeHtml(currentUser.name)} (${currentUser.role})</span>
-      </div>
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" class="btn-brut btn-sm ${currentUser.id === 1 ? 'btn-primary' : 'btn-secondary'} btn-quick-role" data-id="1">
-          🎓 Student (Maya Chen)
-        </button>
-        <button type="button" class="btn-brut btn-sm ${currentUser.id === 8 ? 'btn-primary' : 'btn-secondary'} btn-quick-role" data-id="8">
-          ⚠️ Student with Overdue Item (Marcus Vance)
-        </button>
-        <button type="button" class="btn-brut btn-sm ${currentUser.id === 101 ? 'btn-primary' : 'btn-secondary'} btn-quick-role" data-id="101">
-          🔬 Lab Custodian (Dr. Aris Miller)
-        </button>
-        <button type="button" class="btn-brut btn-sm ${currentUser.id === 102 ? 'btn-primary' : 'btn-secondary'} btn-quick-role" data-id="102">
-          📷 Media Lab Custodian (Sarah Jenkins)
-        </button>
-        <button type="button" class="btn-brut btn-sm ${currentUser.id === 201 ? 'btn-primary' : 'btn-secondary'} btn-quick-role" data-id="201">
-          🏛️ Campus Administrator (Dean Alice Cooper)
-        </button>
-      </div>
-    </section>
 
     <!-- Equipment Locker Catalog Section -->
     <section aria-labelledby="catalog-heading">
       <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
         <div>
-          <h2 id="catalog-heading" style="font-size: 1.85rem; margin-bottom: 0.25rem;">Equipment Locker</h2>
+          <h2 id="catalog-heading" style="font-size: 1.85rem; margin-bottom: 0.25rem;">Available Components</h2>
           <p id="results-count" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-muted);">
-            ${resources.length} items available on campus
+            ${resources.length} components available in locker
           </p>
         </div>
         
         <div style="min-width: 280px; max-width: 420px; flex: 1;">
-          <label for="search-input" class="sr-only">Search equipment</label>
-          <input type="search" id="search-input" class="input-brut" placeholder="Search by gear name, specs, or tag (e.g. 4k, fpga)..." autocomplete="off" />
+          <label for="search-input" class="sr-only">Search components</label>
+          <input type="search" id="search-input" class="input-brut" placeholder="Search by name, spec, or code (e.g. arduino, coil, esp32)..." autocomplete="off" />
         </div>
       </div>
 
-      <!-- Sticky Category Chips Filter -->
+      <!-- Category Filter Chips -->
       <div class="chips-container" role="radiogroup" aria-label="Filter by Category">
-        <button type="button" class="chip active" data-category="">All Categories (${resources.length})</button>
+        <button type="button" class="chip active" data-category="">All Components (${resources.length})</button>
         ${categories.map(cat => {
           const catCount = resources.filter(r => r.category === cat).length;
           return `<button type="button" class="chip" data-category="${escapeHtml(cat)}">${escapeHtml(cat)} (${catCount})</button>`;
@@ -267,27 +268,19 @@ export async function renderExplore(params, container) {
     </section>
   `;
 
-  // Quick role buttons listener
-  container.querySelectorAll('.btn-quick-role').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const uId = btn.dataset.id;
-      await Store.setCurrentUser(uId);
-      window.location.reload();
-    });
-  });
-
-  // Attach search and filter event listeners
+  // Search input with debounce
   const searchInput = container.querySelector('#search-input');
   let debounceTimeout = null;
   searchInput.addEventListener('input', (e) => {
-    renderCards(true); // Show skeleton shimmer immediately
+    renderCards(true);
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(() => {
       searchQuery = e.target.value.toLowerCase().trim();
       renderCards(false);
-    }, 120);
+    }, 100);
   });
 
+  // Category chip listeners
   const chipButtons = container.querySelectorAll('.chip');
   chipButtons.forEach(btn => {
     btn.addEventListener('click', () => {

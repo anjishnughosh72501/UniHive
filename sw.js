@@ -1,8 +1,9 @@
 /**
- * CampusShare Offline App Shell Service Worker
+ * UniHive Offline App Shell Service Worker
+ * Version 4: MediaWiki Imageinfo API integration & Hardware Photography
  */
 
-const CACHE_NAME = 'campusshare-cache-v1';
+const CACHE_NAME = 'unihive-cache-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,12 +14,17 @@ const ASSETS_TO_CACHE = [
   './css/pages.css',
   './css/motion.css',
   './js/app.js',
+  './js/auth.js',
+  './js/media.js',
   './js/store.js',
   './js/rules.js',
   './js/seed.js',
   './js/ui.js',
   './js/qr.js',
   './js/views/explore.js',
+  './js/views/login.js',
+  './js/views/signup.js',
+  './js/views/volunteer.js',
   './js/views/resourceDetail.js',
   './js/views/myBookings.js',
   './js/views/ownerDashboard.js',
@@ -27,8 +33,7 @@ const ASSETS_TO_CACHE = [
   './js/views/impact.js',
   './js/views/admin.js',
   './js/views/notifications.js',
-  './js/views/notFound.js',
-  './tests/rules.test.html'
+  './js/views/notFound.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -50,29 +55,34 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((response) => {
-        // Return response directly if not ok or external non-cached
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          fetch(event.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
+            }
+          }).catch(() => {});
+          return cachedResponse;
         }
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+
+        return fetch(event.request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200) {
+            return networkResponse;
+          }
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          return networkResponse;
+        }).catch(() => {
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
         });
-        return response;
-      }).catch(() => {
-        if (event.request.destination === 'document') {
-          return caches.match('./index.html');
-        }
-      });
-    })
-  );
+      })
+    );
+  }
 });

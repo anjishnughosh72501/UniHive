@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CampusShare // Accountable Equipment Lending</title>
+  <title>UniHive // Campus Electronics & Hardware Hub</title>
 
   <!-- PWA Manifest & Theme Color -->
   <link rel="manifest" href="manifest.json">
@@ -25,40 +25,28 @@
   <!-- Accessibility Skip Link -->
   <a href="#view-container" class="skip-link">Skip to content</a>
 
-  <!-- Top Demo Banner -->
-  <aside class="demo-banner" aria-label="Demo notice">
-    <div>
-      <strong>DEMO BUILD</strong>
-      <span class="disclaimer">Fictional demonstration data stored in local browser state. No actual passwords or production credentials required.</span>
-    </div>
-    <div style="font-size: 0.75rem;">
-      <a href="tests/rules.test.html" style="text-decoration: underline; color: var(--color-primary); font-weight: bold;">Run Rules Unit Tests ↗</a>
-    </div>
-  </aside>
-
   <!-- Header & Navigation -->
   <header class="site-header">
     <div class="container">
       <div class="nav-inner">
-        <a href="#/" class="brand-logo" aria-label="CampusShare Home">
-          <div class="brand-icon" aria-hidden="true">CS</div>
-          <span>CAMPUS<span style="background:var(--color-primary); padding: 0 4px; color:#111;">SHARE</span></span>
+        <a href="#/" class="brand-logo" aria-label="UniHive Home">
+          <span>UNI<span style="background:var(--color-primary); padding: 0 4px; color:#111;">HIVE</span></span>
         </a>
 
         <nav aria-label="Primary Navigation">
-          <ul class="nav-links">
-            <li><a href="#/" class="nav-link">Locker</a></li>
-            <li><a href="#/my-bookings" class="nav-link">My Loans</a></li>
-            <li><a href="#/owner" class="nav-link">Custodian Ops</a></li>
-            <li><a href="#/incidents" class="nav-link">Incidents</a></li>
-            <li><a href="#/impact" class="nav-link">Impact</a></li>
-            <li><a href="#/activity" class="nav-link">Activity</a></li>
-            <li><a href="#/admin" class="nav-link">Admin</a></li>
+          <ul class="nav-links" id="primary-nav-links">
+            <li><a href="#/" class="nav-link" data-route="explore">Locker</a></li>
+            <li id="nav-item-my-loans"><a href="#/my-bookings" class="nav-link" data-route="loans">My Loans</a></li>
+            <li id="nav-item-volunteer"><a href="#/volunteer" class="nav-link" data-route="volunteer">Volunteer Ops</a></li>
+            <li id="nav-item-incidents"><a href="#/incidents" class="nav-link" data-route="incidents">Incidents</a></li>
+            <li><a href="#/impact" class="nav-link" data-route="impact">Impact</a></li>
+            <li id="nav-item-activity"><a href="#/activity" class="nav-link" data-route="activity">Activity</a></li>
+            <li id="nav-item-admin"><a href="#/admin" class="nav-link" data-route="admin">Admin</a></li>
           </ul>
         </nav>
 
         <div class="nav-actions">
-          <!-- Notification Bell & Popover (2.4) -->
+          <!-- Notification Bell & Popover -->
           <div style="position: relative;">
             <button type="button" class="btn-brut btn-sm btn-secondary" id="nav-notif-bell" aria-label="Notifications" style="padding: 0.35rem 0.6rem; position: relative;">
               🔔
@@ -83,11 +71,8 @@
             ★ <span id="nav-trust-level">Trusted</span>
           </div>
 
-          <!-- Role Switcher Dropdown -->
-          <div class="role-switcher-box" title="Switch active persona">
-            <span class="role-label">Persona:</span>
-            <select id="global-role-switcher" class="role-select" aria-label="Switch demo persona"></select>
-          </div>
+          <!-- Auth User Profile Box (Dynamically injected) -->
+          <div id="nav-auth-box" style="display: flex; align-items: center; gap: 0.5rem;"></div>
 
           <!-- Dark Mode Toggle Button -->
           <button type="button" class="btn-brut btn-sm btn-secondary" id="theme-toggle-btn" aria-label="Toggle dark mode">
@@ -101,7 +86,7 @@
   <!-- Main View Container -->
   <main id="view-container" class="container main-content" tabindex="-1">
     <div style="padding: 3rem; text-align: center; font-family: var(--font-mono);">
-      Starting CampusShare engine...
+      Initializing UniHive hardware network...
     </div>
   </main>
 
@@ -114,23 +99,22 @@
       <div class="footer-inner">
         <div class="footer-info">
           <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <div class="brand-icon" style="width:24px; height:24px; font-size:0.75rem;">CS</div>
-            <strong style="font-family: var(--font-heading); font-size: 1.15rem;">CampusShare Noticeboard</strong>
+            <strong style="font-family: var(--font-heading); font-size: 1.15rem;">UniHive Hardware Hub</strong>
           </div>
           <p style="font-size: 0.85rem; color: var(--color-muted); line-height: 1.5;">
-            An accountable campus equipment-sharing network designed for college hackathons. Replaces bureaucratic sign-out sheets with chain-of-custody tokens, trust ratings, and collaborative human incident reviews.
+            An accountable campus equipment-sharing network for college innovation labs and research centers. Replaces informal sign-out sheets with chain-of-custody tokens, trust ratings, and direct administrative project allotments.
           </p>
           <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-muted); margin-top: 0.5rem;">
-            Local Storage Schema v1.0 • Client-side Zero-Server Static Stack
+            UniHive © 2025 • Hardware & Component Sharing Infrastructure for Campus Makers.
           </div>
         </div>
 
         <div class="footer-actions">
-          <button type="button" class="btn-brut btn-sm btn-danger" id="btn-reset-demo">
-            ↺ Reset Demo State
-          </button>
-          <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-muted);">
-            Includes 15 resources • 12 users • 34 bookings
+          <div style="font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;">
+            Role Support: Student • Council Volunteer • Admin
+          </div>
+          <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-muted); margin-top: 0.25rem;">
+            Campus Production Edition
           </div>
         </div>
       </div>

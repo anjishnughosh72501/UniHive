@@ -1,52 +1,12 @@
 /**
- * CampusShare Seed Data
- * Generates 14+ resources across 7 categories, 8 students with varied profiles,
- * 3 owners, 1 admin, 30+ historical bookings across 60 days, 1 currently overdue booking,
- * open & resolved incidents, and audit events.
+ * UniHive Seed Data - Electronics & Hardware Prototyping
+ * Realistic electronics components (Microcontrollers, Sensors, Batteries, Coils, 3D printing)
+ * High-fidelity inline SVG diagrams representing circuit hardware
+ * Preset accounts: Admin, Council Volunteer, Student
  */
 
-function generateSvgArt(category, title) {
-  const bgColors = {
-    'Electronics': '#FFD93D',
-    'Lab Kits': '#FFEAA7',
-    'Photography': '#4D96FF',
-    'Audio': '#B983FF',
-    'Sports': '#6BCB77',
-    'Drones': '#FF6B6B',
-    '3D Printers': '#FD79A8',
-    'Laptops': '#74B9FF'
-  };
-  const bg = bgColors[category] || '#FFD93D';
-  
-  // Neo-brutalist SVG badge art with bold lines and geometric stamps
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="100%" height="100%" style="background:${bg};">
-    <defs>
-      <pattern id="pat-${category.replace(/\s+/g, '')}" width="16" height="16" patternUnits="userSpaceOnUse">
-        <circle cx="2" cy="2" r="1.5" fill="#111" opacity="0.12" />
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#pat-${category.replace(/\s+/g, '')})" />
-    <g transform="translate(24, 24)">
-      <rect x="0" y="0" width="352" height="172" fill="#FFFFFF" stroke="#111111" stroke-width="3" rx="4" filter="drop-shadow(4px 4px 0 #111)" />
-      <!-- Header banner -->
-      <rect x="0" y="0" width="352" height="34" fill="#111111" />
-      <text x="12" y="23" fill="#FFF8E7" font-family="'Space Mono', monospace" font-size="12" font-weight="700" letter-spacing="1.5">${category.toUpperCase()} // ASSET</text>
-      <!-- Center Graphic Illustration -->
-      <circle cx="80" cy="100" r="38" fill="${bg}" stroke="#111111" stroke-width="3" />
-      <rect x="62" y="82" width="36" height="36" fill="#111" stroke="#111" rx="2" />
-      <polygon points="80,72 100,105 60,105" fill="#FFF8E7" />
-      
-      <!-- Typography in tile -->
-      <text x="138" y="80" fill="#111111" font-family="'Space Grotesk', sans-serif" font-size="16" font-weight="800">${escapeXml(title.substring(0, 22))}</text>
-      <text x="138" y="104" fill="#666666" font-family="'Space Mono', monospace" font-size="11">STANDARDIZED KIT</text>
-      <rect x="138" y="118" width="75" height="20" fill="${bg}" stroke="#111" stroke-width="1.5" rx="3" />
-      <text x="146" y="132" fill="#111111" font-family="'Space Mono', monospace" font-size="10" font-weight="700">VERIFIED</text>
-    </g>
-  </svg>`;
-}
-
 function escapeXml(unsafe) {
-  return unsafe.replace(/[<>&'"]/g, c => {
+  return String(unsafe).replace(/[<>&'"]/g, c => {
     switch (c) {
       case '<': return '&lt;';
       case '>': return '&gt;';
@@ -57,949 +17,820 @@ function escapeXml(unsafe) {
   });
 }
 
+/**
+ * High-fidelity SVG generator for electronics hardware components
+ */
+export function generateComponentSvg(type, title, code) {
+  const safeTitle = escapeXml(title.substring(0, 26));
+  const safeCode = escapeXml(code || 'CS-HW');
+
+  if (type === 'arduino') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#E8F4F8" />
+      <g transform="translate(20, 20)">
+        <!-- Arduino Blue PCB -->
+        <rect x="0" y="0" width="360" height="200" rx="8" fill="#00878F" stroke="#005B60" stroke-width="3" />
+        <!-- USB Type B connector -->
+        <rect x="-8" y="25" width="48" height="42" rx="3" fill="#D0D7DE" stroke="#57606A" stroke-width="2" />
+        <rect x="-4" y="33" width="16" height="26" fill="#24292F" />
+        <!-- DC Barrel Jack -->
+        <rect x="-6" y="130" width="54" height="48" rx="4" fill="#24292F" stroke="#111" stroke-width="2" />
+        <circle cx="12" cy="154" r="8" fill="#6E7781" />
+        <!-- ATmega328P DIP IC Socket & Chip -->
+        <rect x="140" y="95" width="130" height="42" rx="2" fill="#1C2128" stroke="#111" stroke-width="2" />
+        <!-- IC Pins -->
+        ${Array.from({length: 14}).map((_, i) => `
+          <rect x="${146 + i * 8.5}" y="90" width="3" height="6" fill="#C59B27" />
+          <rect x="${146 + i * 8.5}" y="136" width="3" height="6" fill="#C59B27" />
+        `).join('')}
+        <circle cx="148" cy="116" r="3" fill="#444C56" />
+        <text x="160" y="120" fill="#E6EDF3" font-family="'Space Mono', monospace" font-size="9" font-weight="700">ATMEGA328P</text>
+        <!-- Digital Headers -->
+        <rect x="150" y="10" width="180" height="18" fill="#1C2128" rx="2" />
+        ${Array.from({length: 16}).map((_, i) => `<rect x="${155 + i * 10.5}" y="14" width="4" height="10" fill="#C59B27" />`).join('')}
+        <text x="150" y="38" fill="#FFF" font-family="'Space Mono', monospace" font-size="8">DIGITAL PWM (0-13)</text>
+        <!-- Analog / Power Headers -->
+        <rect x="170" y="172" width="160" height="18" fill="#1C2128" rx="2" />
+        ${Array.from({length: 14}).map((_, i) => `<rect x="${176 + i * 10.5}" y="176" width="4" height="10" fill="#C59B27" />`).join('')}
+        <text x="170" y="166" fill="#FFF" font-family="'Space Mono', monospace" font-size="8">POWER / ANALOG (A0-A5)</text>
+        <!-- 16MHz Crystal Oscillator -->
+        <rect x="90" y="65" width="28" height="14" rx="3" fill="#D0D7DE" stroke="#8C959F" stroke-width="1.5" />
+        <text x="93" y="75" fill="#111" font-family="'Space Mono', monospace" font-size="6" font-weight="700">16.0</text>
+        <!-- Reset Button -->
+        <rect x="70" y="20" width="22" height="22" rx="2" fill="#C59B27" />
+        <circle cx="81" cy="31" r="6" fill="#C0392B" />
+        <!-- Onboard LEDs -->
+        <circle cx="115" cy="110" r="3" fill="#2ECC71" />
+        <circle cx="115" cy="122" r="3" fill="#F1C40F" />
+        <!-- Branding Label -->
+        <text x="65" y="115" fill="#FFF" font-family="'Space Grotesk', sans-serif" font-size="14" font-weight="900" letter-spacing="1">ARDUINO</text>
+        <text x="65" y="130" fill="#FFEAA7" font-family="'Space Mono', monospace" font-size="9" font-weight="700">UNO R3 • ${safeCode}</text>
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'esp32') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#EAECEF" />
+      <g transform="translate(60, 15)">
+        <!-- ESP32 Matte Black Board -->
+        <rect x="0" y="0" width="280" height="210" rx="6" fill="#1E232A" stroke="#111" stroke-width="3" />
+        <!-- Dual Side Headers (30 pin) -->
+        ${Array.from({length: 15}).map((_, i) => `
+          <rect x="-8" y="${18 + i * 11.5}" width="12" height="6" fill="#C59B27" stroke="#111" stroke-width="1" />
+          <rect x="276" y="${18 + i * 11.5}" width="12" height="6" fill="#C59B27" stroke="#111" stroke-width="1" />
+        `).join('')}
+        <!-- WROOM-32 Metal RF Shield -->
+        <rect x="50" y="18" width="180" height="110" rx="4" fill="#C5D1D9" stroke="#8C959F" stroke-width="2" />
+        <!-- PCB Trace Antenna on top -->
+        <rect x="55" y="24" width="170" height="26" fill="#1E232A" rx="2" />
+        <path d="M70,38 L85,38 L85,30 L100,30 L100,38 L115,38 L115,30 L130,30 L130,38 L145,38 L145,30 L160,30 L160,38 L175,38 L175,30 L190,30 L190,38 L205,38" fill="none" stroke="#C59B27" stroke-width="3" stroke-linecap="round" />
+        <text x="65" y="75" fill="#24292F" font-family="'Space Mono', monospace" font-size="11" font-weight="900">ESP-WROOM-32</text>
+        <text x="65" y="92" fill="#57606A" font-family="'Space Mono', monospace" font-size="8">Wi-Fi + BT / Dual Core 240MHz</text>
+        <text x="65" y="108" fill="#57606A" font-family="'Space Mono', monospace" font-size="8">FCC ID: 2AC7Z-ESPWROOM32</text>
+        <!-- CP2102 USB Bridge IC -->
+        <rect x="120" y="145" width="40" height="26" rx="2" fill="#111" />
+        <circle cx="125" cy="150" r="2" fill="#555" />
+        <!-- MicroUSB Jack -->
+        <rect x="110" y="196" width="60" height="20" rx="2" fill="#AFB8C1" stroke="#24292F" stroke-width="2" />
+        <rect x="125" y="202" width="30" height="8" fill="#111" />
+        <!-- Buttons EN / BOOT -->
+        <rect x="25" y="170" width="22" height="18" fill="#57606A" rx="2" />
+        <circle cx="36" cy="179" r="4" fill="#C0392B" />
+        <text x="26" y="198" fill="#FFF" font-family="'Space Mono', monospace" font-size="7">EN</text>
+        <rect x="233" y="170" width="22" height="18" fill="#57606A" rx="2" />
+        <circle cx="244" cy="179" r="4" fill="#2980B9" />
+        <text x="230" y="198" fill="#FFF" font-family="'Space Mono', monospace" font-size="7">BOOT</text>
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'raspberry_pi') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#E6F4EA" />
+      <g transform="translate(25, 20)">
+        <!-- Green Pi PCB -->
+        <rect x="0" y="0" width="350" height="200" rx="10" fill="#0E6251" stroke="#0B4F41" stroke-width="3" />
+        <!-- 40 Pin GPIO Header -->
+        <rect x="30" y="8" width="200" height="22" fill="#1A1A1A" rx="2" />
+        ${Array.from({length: 20}).map((_, i) => `
+          <circle cx="${38 + i * 9.8}" cy="14" r="2" fill="#C59B27" />
+          <circle cx="${38 + i * 9.8}" cy="24" r="2" fill="#C59B27" />
+        `).join('')}
+        <!-- BCM2711 Quad CPU -->
+        <rect x="110" y="65" width="55" height="55" rx="3" fill="#D0D7DE" stroke="#57606A" stroke-width="2" />
+        <text x="115" y="95" fill="#111" font-family="'Space Mono', monospace" font-size="8" font-weight="700">BROADCOM</text>
+        <!-- Dual USB 3.0 (Blue) -->
+        <rect x="295" y="35" width="62" height="42" rx="3" fill="#0969DA" stroke="#111" stroke-width="2" />
+        <rect x="345" y="42" width="14" height="28" fill="#111" />
+        <!-- Dual USB 2.0 (Black) -->
+        <rect x="295" y="90" width="62" height="42" rx="3" fill="#24292F" stroke="#111" stroke-width="2" />
+        <!-- Ethernet Jack -->
+        <rect x="295" y="145" width="62" height="45" rx="3" fill="#AFB8C1" stroke="#111" stroke-width="2" />
+        <!-- Dual Micro HDMI -->
+        <rect x="110" y="186" width="30" height="18" fill="#24292F" rx="2" />
+        <rect x="160" y="186" width="30" height="18" fill="#24292F" rx="2" />
+        <!-- USB-C Power -->
+        <rect x="30" y="186" width="36" height="18" fill="#AFB8C1" rx="2" />
+        <!-- Wireless Shield -->
+        <rect x="25" y="45" width="36" height="36" rx="2" fill="#D0D7DE" />
+        <text x="35" y="130" fill="#FFF" font-family="'Space Grotesk', sans-serif" font-size="14" font-weight="900">Raspberry Pi 4B</text>
+        <text x="35" y="148" fill="#A3E4D7" font-family="'Space Mono', monospace" font-size="9">4GB RAM • Gigabit LAN • ${safeCode}</text>
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'coil_inductor') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#FEF9E7" />
+      <g transform="translate(80, 20)">
+        <!-- Ferrite Toroid Core Ring -->
+        <circle cx="120" cy="95" r="75" fill="none" stroke="#2C3E50" stroke-width="38" />
+        <circle cx="120" cy="95" r="75" fill="none" stroke="#1A252F" stroke-width="32" />
+        <!-- Copper Wire Turns tightly wound around the ring -->
+        ${Array.from({length: 22}).map((_, i) => {
+          const angle = (i / 22) * Math.PI * 2;
+          const x1 = 120 + Math.cos(angle) * 55;
+          const y1 = 95 + Math.sin(angle) * 55;
+          const x2 = 120 + Math.cos(angle) * 95;
+          const y2 = 95 + Math.sin(angle) * 95;
+          return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#D35400" stroke-width="8" stroke-linecap="round" />
+                  <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#E67E22" stroke-width="5" stroke-linecap="round" />`;
+        }).join('')}
+        <!-- Terminal Wire Leads -->
+        <path d="M50,135 Q20,180 -10,190" fill="none" stroke="#D35400" stroke-width="7" stroke-linecap="round" />
+        <path d="M190,135 Q220,180 250,190" fill="none" stroke="#D35400" stroke-width="7" stroke-linecap="round" />
+        <!-- Stripped Tinned Lead Tips -->
+        <circle cx="-10" cy="190" r="5" fill="#BDC3C7" stroke="#7F8C8D" stroke-width="2" />
+        <circle cx="250" cy="190" r="5" fill="#BDC3C7" stroke="#7F8C8D" stroke-width="2" />
+        <rect x="35" y="80" width="170" height="30" rx="4" fill="#111" opacity="0.85" />
+        <text x="45" y="100" fill="#F1C40F" font-family="'Space Mono', monospace" font-size="11" font-weight="700">TOROID COIL // 220μH</text>
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'lipo_battery') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#FDEDEC" />
+      <g transform="translate(50, 30)">
+        <!-- LiPo Pack Body with 3 distinct stacked cells -->
+        <rect x="0" y="20" width="220" height="130" rx="8" fill="#F4D03F" stroke="#111" stroke-width="3" />
+        <line x1="0" y1="62" x2="220" y2="62" stroke="#D4AC0D" stroke-width="2" />
+        <line x1="0" y1="104" x2="220" y2="104" stroke="#D4AC0D" stroke-width="2" />
+        <!-- Warning & Spec Label -->
+        <rect x="25" y="40" width="170" height="90" rx="4" fill="#111" />
+        <text x="35" y="65" fill="#F1C40F" font-family="'Space Grotesk', sans-serif" font-size="16" font-weight="900">3S 11.1V 2200mAh</text>
+        <text x="35" y="85" fill="#FFF" font-family="'Space Mono', monospace" font-size="11">DISCHARGE: 35C (77A)</text>
+        <text x="35" y="105" fill="#E74C3C" font-family="'Space Mono', monospace" font-size="9" font-weight="700">⚠ LI-POLYMER RECHARGEABLE</text>
+        <text x="35" y="120" fill="#AAA" font-family="'Space Mono', monospace" font-size="8">${safeCode} • CERTIFIED</text>
+        <!-- Silicone Main Leads -->
+        <path d="M220,50 C260,50 280,30 295,30" fill="none" stroke="#C0392B" stroke-width="8" stroke-linecap="round" />
+        <path d="M220,70 C260,70 280,50 295,50" fill="none" stroke="#111" stroke-width="8" stroke-linecap="round" />
+        <!-- Yellow XT60 Connector Plug -->
+        <polygon points="295,20 325,25 325,55 295,60" fill="#F39C12" stroke="#111" stroke-width="2" />
+        <circle cx="310" cy="35" r="4" fill="#C59B27" />
+        <circle cx="310" cy="48" r="4" fill="#C59B27" />
+        <!-- 4-Pin JST Balance Lead -->
+        <path d="M220,110 C250,110 270,120 285,120" fill="none" stroke="#E67E22" stroke-width="4" stroke-linecap="round" />
+        <rect x="285" y="112" width="22" height="16" rx="2" fill="#FFF" stroke="#111" stroke-width="2" />
+        ${Array.from({length: 4}).map((_, i) => `<rect x="${288 + i * 4.5}" y="116" width="2" height="8" fill="#C59B27" />`).join('')}
+      </g>
+    </svg>`;
+  }
+
+  if (type === '18650_battery') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#EBF5FB" />
+      <g transform="translate(60, 25)">
+        <!-- Heavy Duty Battery Cradle -->
+        <rect x="0" y="10" width="260" height="160" rx="8" fill="#1C2833" stroke="#111" stroke-width="3" />
+        <!-- Cell 1 -->
+        <rect x="25" y="30" width="200" height="48" rx="6" fill="#2980B9" stroke="#1B4F72" stroke-width="2" />
+        <rect x="225" y="42" width="12" height="24" rx="2" fill="#BDC3C7" />
+        <text x="50" y="60" fill="#FFF" font-family="'Space Mono', monospace" font-size="11" font-weight="700">18650 • 3.7V 3000mAh</text>
+        <!-- Cell 2 -->
+        <rect x="25" y="100" width="200" height="48" rx="6" fill="#2980B9" stroke="#1B4F72" stroke-width="2" />
+        <rect x="225" y="112" width="12" height="24" rx="2" fill="#BDC3C7" />
+        <text x="50" y="130" fill="#FFF" font-family="'Space Mono', monospace" font-size="11" font-weight="700">18650 • 3.7V 3000mAh</text>
+        <!-- Silver Contact Springs -->
+        <circle cx="20" cy="54" r="5" fill="#BDC3C7" />
+        <circle cx="20" cy="124" r="5" fill="#BDC3C7" />
+        <!-- Output Wires -->
+        <path d="M260,54 Q285,54 300,75" fill="none" stroke="#E74C3C" stroke-width="4" stroke-linecap="round" />
+        <path d="M260,124 Q285,124 300,105" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round" />
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'pla_filament') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#F5EEF8" />
+      <g transform="translate(90, 15)">
+        <!-- Filament Spool Outer Flange -->
+        <circle cx="110" cy="100" r="95" fill="#2C3E50" stroke="#111" stroke-width="3" />
+        <!-- Coiled Filament Ring -->
+        <circle cx="110" cy="100" r="85" fill="#E67E22" stroke="#D35400" stroke-width="2" />
+        ${Array.from({length: 8}).map((_, i) => `
+          <circle cx="110" cy="100" r="${55 + i * 4}" fill="none" stroke="#F39C12" stroke-width="2.5" opacity="0.85" />
+        `).join('')}
+        <!-- Inner Core Hub -->
+        <circle cx="110" cy="100" r="48" fill="#1C2833" stroke="#111" stroke-width="2" />
+        <circle cx="110" cy="100" r="24" fill="#F5EEF8" stroke="#111" stroke-width="2" />
+        <!-- Spool Window Holes -->
+        ${[0, 60, 120, 180, 240, 300].map(deg => {
+          const rad = (deg * Math.PI) / 180;
+          const cx = 110 + Math.cos(rad) * 68;
+          const cy = 100 + Math.sin(rad) * 68;
+          return `<circle cx="${cx}" cy="${cy}" r="10" fill="#2C3E50" stroke="#111" stroke-width="1.5" />`;
+        }).join('')}
+        <!-- Loose Filament End -->
+        <path d="M195,100 C220,90 230,130 250,120" fill="none" stroke="#E67E22" stroke-width="4" stroke-linecap="round" />
+        <!-- Label Badge -->
+        <rect x="50" y="90" width="120" height="22" rx="3" fill="#111" />
+        <text x="58" y="105" fill="#FFF" font-family="'Space Mono', monospace" font-size="8" font-weight="700">PLA 1.75mm · 1KG</text>
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'motor_driver') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#FADBD8" />
+      <g transform="translate(60, 20)">
+        <!-- Red PCB -->
+        <rect x="0" y="0" width="280" height="195" rx="6" fill="#C0392B" stroke="#922B21" stroke-width="3" />
+        <!-- Center Black Aluminum Heat Sink -->
+        <rect x="80" y="30" width="120" height="75" rx="3" fill="#1C2833" stroke="#111" stroke-width="2" />
+        ${Array.from({length: 7}).map((_, i) => `<line x1="${92 + i * 16}" y1="30" x2="${92 + i * 16}" y2="105" stroke="#34495E" stroke-width="3" />`).join('')}
+        <text x="100" y="70" fill="#FFF" font-family="'Space Mono', monospace" font-size="11" font-weight="900">L298N DUAL</text>
+        <text x="96" y="86" fill="#F1C40F" font-family="'Space Mono', monospace" font-size="8">H-BRIDGE DRIVER</text>
+        <!-- Blue Screw Terminals: Motor A, Motor B, Power -->
+        <rect x="10" y="50" width="40" height="50" rx="3" fill="#2980B9" stroke="#111" stroke-width="2" />
+        <circle cx="30" cy="62" r="5" fill="#F4D03F" stroke="#111" />
+        <circle cx="30" cy="88" r="5" fill="#F4D03F" stroke="#111" />
+        <rect x="230" y="50" width="40" height="50" rx="3" fill="#2980B9" stroke="#111" stroke-width="2" />
+        <circle cx="250" cy="62" r="5" fill="#F4D03F" stroke="#111" />
+        <circle cx="250" cy="88" r="5" fill="#F4D03F" stroke="#111" />
+        <!-- Bottom Power Terminal -->
+        <rect x="80" y="140" width="60" height="35" rx="3" fill="#2980B9" stroke="#111" stroke-width="2" />
+        <!-- Filter Capacitors -->
+        <circle cx="55" cy="145" r="14" fill="#1C2833" stroke="#5D6D7E" stroke-width="2" />
+        <line x1="45" y1="145" x2="65" y2="145" stroke="#BDC3C7" stroke-width="2" />
+        <!-- Header Pins -->
+        <rect x="160" y="150" width="80" height="16" fill="#111" rx="2" />
+        ${Array.from({length: 6}).map((_, i) => `<circle cx="${168 + i * 12}" cy="158" r="2" fill="#C59B27" />`).join('')}
+        <text x="160" y="180" fill="#FFF" font-family="'Space Mono', monospace" font-size="8">IN1 IN2 IN3 IN4</text>
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'ultrasonic') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#EBF5FB" />
+      <g transform="translate(60, 25)">
+        <!-- Blue PCB -->
+        <rect x="0" y="20" width="280" height="150" rx="6" fill="#1B4F72" stroke="#111" stroke-width="3" />
+        <!-- Dual Transducer Cylinders (Eyes) -->
+        <circle cx="75" cy="85" r="45" fill="#BDC3C7" stroke="#7F8C8D" stroke-width="3" />
+        <circle cx="75" cy="85" r="38" fill="#2C3E50" />
+        <circle cx="75" cy="85" r="32" fill="#1A252F" />
+        <text x="70" y="90" fill="#FFF" font-family="'Space Grotesk', sans-serif" font-size="16" font-weight="900">T</text>
+        <circle cx="205" cy="85" r="45" fill="#BDC3C7" stroke="#7F8C8D" stroke-width="3" />
+        <circle cx="205" cy="85" r="38" fill="#2C3E50" />
+        <circle cx="205" cy="85" r="32" fill="#1A252F" />
+        <text x="200" y="90" fill="#FFF" font-family="'Space Grotesk', sans-serif" font-size="16" font-weight="900">R</text>
+        <!-- Center Crystal Oscillator -->
+        <rect x="125" y="70" width="30" height="14" rx="3" fill="#D0D7DE" stroke="#57606A" stroke-width="1.5" />
+        <!-- 4 Pin Header -->
+        <rect x="110" y="160" width="60" height="15" fill="#111" rx="2" />
+        ${Array.from({length: 4}).map((_, i) => `<circle cx="${118 + i * 14}" cy="167" r="2.5" fill="#C59B27" />`).join('')}
+        <text x="90" y="42" fill="#FFF" font-family="'Space Mono', monospace" font-size="11" font-weight="700">HC-SR04 SENSOR</text>
+      </g>
+    </svg>`;
+  }
+
+  if (type === 'oscilloscope') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+      <rect width="100%" height="100%" fill="#FEF9E7" />
+      <g transform="translate(60, 15)">
+        <!-- Rugged Yellow Body -->
+        <rect x="0" y="0" width="280" height="210" rx="10" fill="#F1C40F" stroke="#111" stroke-width="4" />
+        <!-- Bezel & Dark Screen -->
+        <rect x="25" y="20" width="170" height="135" rx="4" fill="#111" stroke="#333" stroke-width="2" />
+        <!-- Grid lines on screen -->
+        ${Array.from({length: 7}).map((_, i) => `<line x1="25" y1="${35 + i * 16}" x2="195" y2="${35 + i * 16}" stroke="#1E3A2F" stroke-width="1" stroke-dasharray="2 2" />`).join('')}
+        ${Array.from({length: 9}).map((_, i) => `<line x1="${40 + i * 17}" y1="20" x2="${40 + i * 17}" y2="155" stroke="#1E3A2F" stroke-width="1" stroke-dasharray="2 2" />`).join('')}
+        <!-- Sine Wave on screen -->
+        <path d="M30,85 Q45,45 60,85 T90,85 T120,85 T150,85 T180,85 T195,85" fill="none" stroke="#2ECC71" stroke-width="2.5" stroke-linecap="round" />
+        <text x="35" y="36" fill="#F1C40F" font-family="'Space Mono', monospace" font-size="8">CH1: 2.00V 1.00kHz</text>
+        <!-- Control buttons on right -->
+        <rect x="210" y="25" width="45" height="18" rx="3" fill="#24292F" stroke="#111" />
+        <text x="218" y="37" fill="#FFF" font-family="'Space Mono', monospace" font-size="7">V/DIV</text>
+        <rect x="210" y="52" width="45" height="18" rx="3" fill="#24292F" stroke="#111" />
+        <text x="217" y="64" fill="#FFF" font-family="'Space Mono', monospace" font-size="7">SEC/D</text>
+        <rect x="210" y="80" width="45" height="18" rx="3" fill="#24292F" stroke="#111" />
+        <text x="220" y="92" fill="#FFF" font-family="'Space Mono', monospace" font-size="7">TRIG</text>
+        <!-- Rotary Dial Knob -->
+        <circle cx="232" cy="130" r="18" fill="#D0D7DE" stroke="#111" stroke-width="2" />
+        <circle cx="232" cy="130" r="14" fill="#6E7781" />
+        <line x1="232" y1="116" x2="232" y2="128" stroke="#FFF" stroke-width="2" />
+        <!-- Bottom BNC Connector Port -->
+        <circle cx="50" cy="180" r="12" fill="#D0D7DE" stroke="#111" stroke-width="2" />
+        <circle cx="50" cy="180" r="4" fill="#111" />
+        <text x="75" y="185" fill="#111" font-family="'Space Mono', monospace" font-size="10" font-weight="700">DSO150 OSCILLOSCOPE</text>
+      </g>
+    </svg>`;
+  }
+
+  // Generic fallback electronics card
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+    <rect width="100%" height="100%" fill="#E8F8F5" />
+    <g transform="translate(40, 30)">
+      <rect x="0" y="0" width="320" height="180" rx="8" fill="#1C2833" stroke="#111" stroke-width="3" />
+      <rect x="0" y="0" width="320" height="36" fill="#111" />
+      <text x="15" y="24" fill="#F1C40F" font-family="'Space Mono', monospace" font-size="11" font-weight="700">HARDWARE COMPONENT // ${safeCode}</text>
+      <circle cx="80" cy="108" r="40" fill="#2ECC71" stroke="#111" stroke-width="2" />
+      <rect x="62" y="90" width="36" height="36" fill="#111" rx="4" />
+      <text x="140" y="95" fill="#FFF" font-family="'Space Grotesk', sans-serif" font-size="16" font-weight="800">${safeTitle}</text>
+      <text x="140" y="118" fill="#AAA" font-family="'Space Mono', monospace" font-size="10">STANDARDIZED LAB KIT</text>
+      <rect x="140" y="130" width="90" height="22" rx="3" fill="#F1C40F" />
+      <text x="148" y="145" fill="#111" font-family="'Space Mono', monospace" font-size="9" font-weight="700">AVAILABLE</text>
+    </g>
+  </svg>`;
+}
+
 export function getInitialSeedData() {
   const now = new Date();
-  const d = (daysAgo, hours = 0) => {
-    const dt = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000));
-    return dt.toISOString();
-  };
-  const dFuture = (daysAhead, hours = 0) => {
-    const dt = new Date(now.getTime() + (daysAhead * 24 * 60 * 60 * 1000) + (hours * 60 * 60 * 1000));
-    return dt.toISOString();
-  };
+  const d = (daysAgo, hours = 0) => new Date(now.getTime() - (daysAgo * 24 * 3600 * 1000) + (hours * 3600 * 1000)).toISOString();
+  const dFuture = (daysAhead, hours = 0) => new Date(now.getTime() + (daysAhead * 24 * 3600 * 1000) + (hours * 3600 * 1000)).toISOString();
 
+  // Preset Users
   const users = [
-    // Students
-    { id: 1, name: 'Maya Chen', email: 'maya@campusshare.demo', role: 'student', trained_categories: 'Electronics,3D Printers,Lab Kits' },
-    { id: 2, name: 'Liam Patel', email: 'liam@campusshare.demo', role: 'student', trained_categories: 'Photography,Audio' },
-    { id: 3, name: 'Sofia Rodriguez', email: 'sofia@campusshare.demo', role: 'student', trained_categories: 'Drones,Electronics,Photography' },
-    { id: 4, name: 'Tariq Al-Mansoor', email: 'tariq@campusshare.demo', role: 'student', trained_categories: 'Laptops' },
-    { id: 5, name: 'Aisha Bello', email: 'aisha@campusshare.demo', role: 'student', trained_categories: 'Audio,Photography' },
-    { id: 6, name: 'Jin Woo', email: 'jin@campusshare.demo', role: 'student', trained_categories: 'Electronics,Lab Kits' },
-    { id: 7, name: 'Clara Oswald', email: 'clara@campusshare.demo', role: 'student', trained_categories: 'Sports' },
-    { id: 8, name: 'Marcus Vance', email: 'marcus@campusshare.demo', role: 'student', trained_categories: '3D Printers,Electronics' },
+    // 1. Preset Administrator (Not self-registerable)
+    {
+      id: 201,
+      name: 'Dean Alice Cooper',
+      email: 'admin@unihive.edu',
+      password_hash: '7523b468f89741237c372b8caf5518a94f5a8716f89437ae9322ab9ebcb7cb31',
+      password: 'Admin@UniHive2025!',
+      role: 'admin',
+      title: 'Dean of Technology & Central Lab Admin',
+      trained_categories: 'Microcontrollers,Power & Batteries,Prototyping & Coils,3D Printing,Sensors & Actuators,Test & Tools,Electronics'
+    },
 
-    // Owners
-    { id: 101, name: 'Dr. Aris Miller', email: 'miller@campusshare.demo', role: 'owner', title: 'Director, Engineering Makerspace', trained_categories: 'Electronics,Lab Kits,3D Printers' },
-    { id: 102, name: 'Sarah Jenkins', email: 'sarah@campusshare.demo', role: 'owner', title: 'Media Center Coordinator', trained_categories: 'Photography,Audio,Drones' },
-    { id: 103, name: 'Coach Robert Shaw', email: 'shaw@campusshare.demo', role: 'owner', title: 'Athletics & Campus Rec Supervisor', trained_categories: 'Sports' },
+    // 2. Preset Council Volunteers (Have power to add/remove components)
+    {
+      id: 101,
+      name: 'Arun Patel (Council Lead)',
+      email: 'volunteer@unihive.edu',
+      password_hash: '593afdaca74a28501536cb135f11cf3019309d6f9decf2e775ceac2b4edef8b9',
+      password: 'Volunteer@UniHive2025!',
+      role: 'volunteer',
+      title: 'Student Technical Council Volunteer Lead',
+      trained_categories: 'Microcontrollers,Power & Batteries,Prototyping & Coils,3D Printing,Sensors & Actuators,Electronics'
+    },
+    {
+      id: 102,
+      name: 'Priya Sharma (Robotics Volunteer)',
+      email: 'priya@unihive.edu',
+      password_hash: '593afdaca74a28501536cb135f11cf3019309d6f9decf2e775ceac2b4edef8b9',
+      password: 'Volunteer@UniHive2025!',
+      role: 'volunteer',
+      title: 'Robotics Club Council Volunteer',
+      trained_categories: 'Microcontrollers,Sensors & Actuators,Test & Tools'
+    },
 
-    // Admin
-    { id: 201, name: 'Dean Alice Cooper', email: 'alice@campusshare.demo', role: 'admin', title: 'Dean of Campus Facilities', trained_categories: 'Electronics,Photography,Audio,Sports,Drones,3D Printers,Laptops,Lab Kits' }
-  ];
-
-  const resources = [
-    // Lab Kits & Electronics
+    // 3. Preset Students
     {
       id: 1,
-      name: 'Digital Storage Oscilloscope 100MHz',
-      category: 'Electronics',
-      description: 'Dual-channel 100MHz digital storage oscilloscope with 1GSa/s sampling rate, USB export and 2 passive 10X probes for electronic circuit design and validation.',
-      location: 'Engineering Lab · Hall B204',
-      owner_id: 101,
-      training_required: true,
-      usage_rules: 'Wear anti-static wrist strap. Do not exceed 300V CAT II input. Power off mains before disconnecting leads.',
-      replacement_value: 850,
-      tags: ['circuits', 'testing', 'hardware', 'lab'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Electronics', 'Digital Storage Oscilloscope')
+      name: 'Maya Chen',
+      email: 'student@unihive.edu',
+      password_hash: '787ac571daa20baf3e01f8f115935dc85b270781c0b8fb0246eec6dd73472654',
+      password: 'Student@UniHive2025!',
+      role: 'student',
+      department: 'Robotics & Mechatronics',
+      student_id: 'UH-2024-042',
+      trained_categories: 'Microcontrollers,Prototyping & Coils,Sensors & Actuators'
     },
     {
       id: 2,
-      name: 'IoT Prototyping & Sensor Suite',
-      category: 'Lab Kits',
-      description: 'Comprehensive embedded electronics kit with ESP32, Raspberry Pi Pico, 30+ environmental sensors, breadboards, jumper wires, and logic analyzers.',
-      location: 'Makerspace · Bench 12',
-      owner_id: 101,
-      training_required: false,
-      usage_rules: 'Return all 34 sensor modules in their labeled compartment cases. Report missing Dupont cables.',
-      replacement_value: 320,
-      tags: ['iot', 'esp32', 'sensors', 'arduino'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Lab Kits', 'IoT Sensor Suite')
+      name: 'Liam Patel',
+      email: 'liam@unihive.demo',
+      password_hash: '787ac571daa20baf3e01f8f115935dc85b270781c0b8fb0246eec6dd73472654',
+      password: 'Student@UniHive2025!',
+      role: 'student',
+      department: 'Electrical Engineering',
+      student_id: 'UH-2024-118',
+      trained_categories: 'Microcontrollers,Power & Batteries,Test & Tools'
     },
     {
       id: 3,
-      name: 'FPGA Development Board (Xilinx Artix-7)',
-      category: 'Electronics',
-      description: 'Digital logic synthesiser board with 256MB DDR3, dual Gigabit Ethernet, HDMI video out, and Pmod expansion headers for high-speed VLSI coursework.',
-      location: 'VLSI Research Suite · Room 310',
-      owner_id: 101,
-      training_required: true,
-      usage_rules: 'Store in ESD-shielded static bag when not powered. Do not jumper live 5V/3.3V pins.',
-      replacement_value: 550,
-      tags: ['fpga', 'vlsi', 'verilog', 'hardware'],
-      auto_approve_trusted: false,
-      active: true,
-      svgArt: generateSvgArt('Electronics', 'FPGA Artix-7 Board')
-    },
-
-    // Cameras & Photography
-    {
-      id: 4,
-      name: 'Sony Alpha A7 IV Cinema Rig',
-      category: 'Photography',
-      description: '33MP full-frame hybrid camera equipped with 24-70mm f/2.8 GM II lens, dual 128GB V90 SD cards, Rode shotgun mic, and SmallRig cage with top handle.',
-      location: 'Media Arts Annex · Studio C',
-      owner_id: 102,
-      training_required: false,
-      usage_rules: 'Always wear neck or wrist strap. Keep lens cap installed when not shooting. Never clean sensor without authorized kit.',
-      replacement_value: 3200,
-      tags: ['4k', 'film', 'photo', 'cinema'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Photography', 'Sony A7 IV Cinema Rig')
-    },
-    {
-      id: 5,
-      name: 'Canon EOS R6 Mark II + 50mm Lens',
-      category: 'Photography',
-      description: 'High-speed 24.2MP mirrorless body with Canon RF 50mm f/1.8 lens, 3 LP-E6NH batteries, dual chargers, and rugged weather-sealed sling bag.',
-      location: 'Media Arts Annex · Studio C',
-      owner_id: 102,
-      training_required: false,
-      usage_rules: 'Do not expose to rain without weather housing. Wipe down body before returning.',
-      replacement_value: 2600,
-      tags: ['photo', 'portraits', 'events'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Photography', 'Canon EOS R6 Mk II')
-    },
-    {
-      id: 6,
-      name: 'GoPro HERO12 Creator Edition',
-      category: 'Photography',
-      description: '5.3K60 action camera bundle with Volta battery grip, Media Mod directional mic, Light Mod, magnetic latch mounts, and waterproof dive housing.',
-      location: 'Media Desk · Library Ground Floor',
-      owner_id: 102,
-      training_required: false,
-      usage_rules: 'Rinse with fresh water and dry thoroughly after any aquatic or outdoor wet shoot.',
-      replacement_value: 599,
-      tags: ['action', 'waterproof', 'vlog', '4k'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Photography', 'GoPro HERO12 Creator')
-    },
-
-    // Audio
-    {
-      id: 7,
-      name: 'Røde Wireless PRO Dual Mic System',
-      category: 'Audio',
-      description: 'Dual-channel wireless microphone setup with 32-bit float onboard recording, smart gain, lavalier mics, and magnetic clip accessories.',
-      location: 'Audio Production Lab · Room 104',
-      owner_id: 102,
-      training_required: false,
-      usage_rules: 'Return both transmitters inside charging dock. Untangle and coil lavalier cables loosely.',
-      replacement_value: 450,
-      tags: ['wireless', 'podcast', 'interview', 'audio'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Audio', 'Rode Wireless PRO Mics')
+      name: 'Sofia Rodriguez',
+      email: 'sofia@unihive.demo',
+      password_hash: '787ac571daa20baf3e01f8f115935dc85b270781c0b8fb0246eec6dd73472654',
+      password: 'Student@UniHive2025!',
+      role: 'student',
+      department: 'IoT & Embedded Systems',
+      student_id: 'UH-2023-089',
+      trained_categories: 'Microcontrollers,3D Printing,Sensors & Actuators'
     },
     {
       id: 8,
-      name: 'Zoom H6 Handy Field Audio Recorder',
-      category: 'Audio',
-      description: '6-track portable field audio recorder with interchangeable X/Y and mid-side microphone capsules, 4 XLR/TRS combo inputs, and high-gain preamps.',
-      location: 'Audio Production Lab · Room 104',
-      owner_id: 102,
-      training_required: false,
-      usage_rules: 'Ensure gain wheels are zeroed before plugging phantom-powered condenser mics.',
-      replacement_value: 380,
-      tags: ['sound', 'recorder', 'xlr', 'field-recording'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Audio', 'Zoom H6 Field Recorder')
-    },
-
-    // Drones
-    {
-      id: 9,
-      name: 'DJI Mavic 3 Pro Cine Drone',
-      category: 'Drones',
-      description: 'Triple-camera aerial platform with Apple ProRes recording, Hasselblad 4/3 CMOS camera, omnidirectional obstacle sensing, and 3 flight batteries.',
-      location: 'Robotics & Flight Lab · Hangar 1',
-      owner_id: 102,
-      training_required: true,
-      usage_rules: 'Campus airspace certification mandatory. Maintain visual line of sight at all times. Max flight ceiling 120m.',
-      replacement_value: 3900,
-      tags: ['drone', 'aerial', 'prores', 'gis'],
-      auto_approve_trusted: false,
-      active: true,
-      svgArt: generateSvgArt('Drones', 'DJI Mavic 3 Pro Drone')
-    },
-
-    // 3D Printers
-    {
-      id: 10,
-      name: 'Bambu Lab X1 Carbon High-Speed 3D Printer',
-      category: '3D Printers',
-      description: 'CoreXY AI-monitored 3D printer with 16-color AMS multi-material unit, 300°C nozzle, lidar bed leveling, and carbon fiber print capability.',
-      location: 'Rapid Prototyping Workshop · Bay 4',
-      owner_id: 101,
-      training_required: true,
-      usage_rules: 'Only use approved Bambu/eSun filaments. Clean PEI build plate with 99% isopropyl alcohol after each print.',
-      replacement_value: 1500,
-      tags: ['3d-printing', 'rapid-proto', 'ams', 'cad'],
-      auto_approve_trusted: false,
-      active: true,
-      svgArt: generateSvgArt('3D Printers', 'Bambu Lab X1 Carbon')
-    },
-    {
-      id: 11,
-      name: 'Prusa MK4 Open-Source 3D Printer',
-      category: '3D Printers',
-      description: 'Workhorse FDM printer with Nextruder automatic first layer calibration, quick-swap nozzles, and magnetic spring steel textured sheet.',
-      location: 'Rapid Prototyping Workshop · Bay 2',
-      owner_id: 101,
-      training_required: true,
-      usage_rules: 'Do not use metal scrapers on smooth PEI sheet. Check first layer print before leaving station.',
-      replacement_value: 950,
-      tags: ['3d-printing', 'prusa', 'open-source'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('3D Printers', 'Prusa MK4 3D Printer')
-    },
-
-    // Laptops & Workstations
-    {
-      id: 12,
-      name: 'MacBook Pro 16" M3 Max (36GB RAM / 1TB)',
-      category: 'Laptops',
-      description: 'High-end mobile workstation pre-loaded with Xcode, Adobe Creative Cloud, Blender, Unity, and PyTorch CUDA/MPS development environments.',
-      location: 'IT Services Loan Desk · Central Hall',
-      owner_id: 101,
-      training_required: false,
-      usage_rules: 'Save all personal work to external SSD or cloud. Unit undergoes automated cryptographic wipe upon return.',
-      replacement_value: 3499,
-      tags: ['dev', 'apple', 'rendering', 'laptop'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Laptops', 'MacBook Pro 16 M3 Max')
-    },
-    {
-      id: 13,
-      name: 'Dell XPS 15 RTX 4070 CAD Workstation',
-      category: 'Laptops',
-      description: 'Intel i9 14-core workstation with NVIDIA RTX 4070 GPU, 32GB DDR5, and 3.5K OLED touch display optimized for SolidWorks and ANSYS simulations.',
-      location: 'IT Services Loan Desk · Central Hall',
-      owner_id: 101,
-      training_required: false,
-      usage_rules: 'Use provided 130W USB-C charger. Keep ventilation grills clear while running heavy compute benchmarks.',
-      replacement_value: 2800,
-      tags: ['windows', 'cad', 'gpu', 'simulation'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Laptops', 'Dell XPS 15 Workstation')
-    },
-
-    // Sports & Campus Rec
-    {
-      id: 14,
-      name: 'Spikeball Pro Tournament Official Set',
-      category: 'Sports',
-      description: 'Official tournament edition roundnet set with reinforced 33% stronger rim and legs, ball pump with pressure gauge, and 2 Pro balls.',
-      location: 'Student Activity Center · Gear Locker 7',
-      owner_id: 103,
-      training_required: false,
-      usage_rules: 'Check net tension with official gauge. Deflate slightly before packing in canvas backpack.',
-      replacement_value: 120,
-      tags: ['sports', 'recreation', 'outdoor', 'roundnet'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Sports', 'Spikeball Pro Set')
-    },
-    {
-      id: 15,
-      name: 'Garmin Forerunner GPS & HRM Pro Biometrics',
-      category: 'Sports',
-      description: 'Triathlon performance monitoring pack with dual-frequency GPS watch, chest-strap heart rate monitor, and cadence/power stride sensors.',
-      location: 'Varsity Athletics Training Facility',
-      owner_id: 103,
-      training_required: false,
-      usage_rules: 'Rinse chest strap in cold water after use. Clean sensor charging pins with dry microfiber cloth.',
-      replacement_value: 650,
-      tags: ['fitness', 'gps', 'biometrics', 'running'],
-      auto_approve_trusted: true,
-      active: true,
-      svgArt: generateSvgArt('Sports', 'Garmin Biometrics Pack')
+      name: 'Marcus Vance',
+      email: 'marcus@unihive.demo',
+      password_hash: '787ac571daa20baf3e01f8f115935dc85b270781c0b8fb0246eec6dd73472654',
+      password: 'Student@UniHive2025!',
+      role: 'student',
+      department: 'Electronics & Instrumentation',
+      student_id: 'UH-2023-014',
+      trained_categories: 'Test & Tools,Power & Batteries'
     }
   ];
 
-  // 30+ Bookings across past 60 days + 1 currently overdue booking + active demo bookings
-  const bookings = [
-    // --- 1. CURRENTLY OVERDUE BOOKING (Demo highlight!) ---
+  // Electronics Project Components Catalog
+  const resources = [
     {
       id: 1,
-      resource_id: 1, // Digital Storage Oscilloscope
-      user_id: 8,     // Marcus Vance
-      start_at: d(4, 9),
-      end_at: d(1, 17), // Ended yesterday! Still checked out => OVERDUE!
-      purpose: 'Senior design high-frequency RF filter debugging test bench.',
-      status: 'checked_out',
-      decision_reason: 'Approved for urgent senior capstone debug.',
-      created_at: d(5, 10),
-      checked_out_at: d(4, 9),
-      returned_at: null,
-      qr_token: 'CS-QR-BK1-0982'
+      name: 'Arduino Uno R3 Microcontroller Board',
+      category: 'Microcontrollers',
+      component_code: 'CS-ARD-01',
+      description: 'Standard ATmega328P DIP board with 14 digital I/O pins, 6 analog inputs, 16MHz crystal oscillator, and USB Type-B interface.',
+      location: 'Electronics Lab · Bench 3',
+      owner_id: 101,
+      quantity_total: 12,
+      quantity_available: 9,
+      training_required: false,
+      usage_rules: 'Do not short 5V to GND. Use external regulated power supply for motor loads > 200mA.',
+      replacement_value: 30,
+      tags: ['arduino', 'atmega328p', 'microcontroller', 'embedded'],
+      auto_approve_trusted: true,
+      active: true,
+      wikimedia_file: 'File:Arduino Uno - R3.jpg',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Arduino_Uno_-_R3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      image_license: 'CC BY 2.0',
+      image_artist: 'SparkFun Electronics',
+      description_url: 'https://commons.wikimedia.org/wiki/File:Arduino_Uno_-_R3.jpg',
+      svgArt: generateComponentSvg('arduino', 'Arduino Uno R3', 'CS-ARD-01')
     },
-
-    // --- 2. CURRENTLY ACTIVE / APPROVED / WAITLISTED BOOKINGS ---
     {
       id: 2,
-      resource_id: 4, // Sony A7 IV
-      user_id: 1,     // Maya Chen
-      start_at: dFuture(1, 10),
-      end_at: dFuture(2, 18),
-      purpose: 'Filming robotics symposium showcase recap video.',
-      status: 'approved',
-      decision_reason: 'Approved. Please pick up morning of.',
-      created_at: d(1, 8),
-      checked_out_at: null,
-      returned_at: null,
-      qr_token: 'CS-QR-BK2-3419'
+      name: 'ESP32 DevKit V1 Wi-Fi + BLE Module',
+      category: 'Microcontrollers',
+      component_code: 'CS-ESP-02',
+      description: 'Dual-core Xtensa 32-bit LX6 MCU with integrated 2.4GHz Wi-Fi and Bluetooth BLE 4.2. Breadboard compatible 30-pin DIP layout.',
+      location: 'IoT Makerspace · Cabinet A',
+      owner_id: 101,
+      quantity_total: 15,
+      quantity_available: 11,
+      training_required: false,
+      usage_rules: 'Operating voltage is strictly 3.3V logic. 5V input permitted only on VIN pin.',
+      replacement_value: 20,
+      tags: ['esp32', 'wifi', 'bluetooth', 'iot'],
+      auto_approve_trusted: true,
+      active: true,
+      wikimedia_file: 'File:ESP32.jpg',
+      image_url: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/ESP32.jpg/960px-ESP32.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      image_license: 'CC BY-SA 4.0',
+      image_artist: 'Edwiyanto',
+      description_url: 'https://commons.wikimedia.org/wiki/File:ESP32.jpg',
+      svgArt: generateComponentSvg('esp32', 'ESP32 DevKit V1', 'CS-ESP-02')
     },
     {
       id: 3,
-      resource_id: 4, // Sony A7 IV (Waitlisted due to overlap with booking #2!)
-      user_id: 5,     // Aisha Bello
-      start_at: dFuture(1, 14),
-      end_at: dFuture(2, 12),
-      purpose: 'Documenting campus cultural night festival performances.',
-      status: 'waitlisted',
-      decision_reason: 'Another booking overlaps this time slot; placed in waitlist queue.',
-      created_at: d(1, 11),
-      checked_out_at: null,
-      returned_at: null,
-      qr_token: null
+      name: 'Raspberry Pi 4 Model B (4GB RAM)',
+      category: 'Microcontrollers',
+      component_code: 'CS-RPI-03',
+      description: 'Broadcom BCM2711 quad-core Cortex-A72 @ 1.5GHz single-board computer with Gigabit Ethernet, dual micro-HDMI 4K, and USB 3.0.',
+      location: 'Embedded Systems Lab · Bay 2',
+      owner_id: 102,
+      quantity_total: 6,
+      quantity_available: 4,
+      training_required: true,
+      usage_rules: 'Use certified 5.1V 3A USB-C PSU. Shut down via OS command before pulling power.',
+      replacement_value: 75,
+      tags: ['raspberry-pi', 'linux', 'sbc', 'python', 'ros'],
+      auto_approve_trusted: false,
+      active: true,
+      wikimedia_file: 'File:Raspberry Pi 4 B.png',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Raspberry_Pi_4_B.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      image_license: 'CC0',
+      image_artist: 'Batocera Team',
+      description_url: 'https://commons.wikimedia.org/wiki/File:Raspberry_Pi_4_B.png',
+      svgArt: generateComponentSvg('raspberry_pi', 'Raspberry Pi 4B', 'CS-RPI-03')
     },
     {
       id: 4,
-      resource_id: 10, // Bambu Lab X1 3D Printer
-      user_id: 1,      // Maya Chen
-      start_at: dFuture(3, 9),
-      end_at: dFuture(3, 19),
-      purpose: '3D printing drone arm replacement brackets in PETG-CF.',
+      name: 'High-Q Toroid Inductor / 3D Print Coil Core',
+      category: 'Prototyping & Coils',
+      component_code: 'CS-COIL-04',
+      description: 'Ferrite ring toroid core with heavy-gauge enameled copper wire winding (220μH) for inductive power coupling, filters, and wireless charging experiments.',
+      location: 'Power Electronics Bay · Locker 4',
+      owner_id: 101,
+      quantity_total: 8,
+      quantity_available: 6,
+      training_required: false,
+      usage_rules: 'Ensure insulation enamel remains intact. Check saturation current limits before high-frequency pulsing.',
+      replacement_value: 18,
+      tags: ['coil', 'toroid', 'inductor', 'wireless-power', '3d-print'],
+      auto_approve_trusted: true,
+      active: true,
+      wikimedia_file: 'File:Toroid electronic.jpg',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/c/c0/Toroid_electronic.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      image_license: 'CC BY-SA 3.0',
+      image_artist: 'Wikimedia Commons',
+      description_url: 'https://commons.wikimedia.org/wiki/File:Toroid_electronic.jpg',
+      svgArt: generateComponentSvg('coil_inductor', 'Toroid Coil Inductor', 'CS-COIL-04')
+    },
+    {
+      id: 5,
+      name: '11.1V 3S LiPo High-Discharge Battery (2200mAh)',
+      category: 'Power & Batteries',
+      component_code: 'CS-BAT-05',
+      description: '3-cell lithium polymer battery pack with 35C continuous discharge rating, XT60 high-current connector, and JST-XH balance lead.',
+      location: 'Robotics Workshop · Fireproof Battery Safe',
+      owner_id: 102,
+      quantity_total: 10,
+      quantity_available: 7,
+      training_required: true,
+      usage_rules: 'Always balance charge in designated LiPo fire safe bag. Never discharge below 3.3V per cell (9.9V total).',
+      replacement_value: 45,
+      tags: ['lipo', 'battery', 'drone', 'power', 'xt60'],
+      auto_approve_trusted: false,
+      active: true,
+      wikimedia_file: 'File:Kindle-Reader Lithium-Polymer-Battery-01.jpg',
+      image_url: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/Kindle-Reader_Lithium-Polymer-Battery-01.jpg/960px-Kindle-Reader_Lithium-Polymer-Battery-01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      image_license: 'CC BY-SA 3.0',
+      image_artist: 'CEphoto, Uwe Aranas',
+      description_url: 'https://commons.wikimedia.org/wiki/File:Kindle-Reader_Lithium-Polymer-Battery-01.jpg',
+      svgArt: generateComponentSvg('lipo_battery', '3S 11.1V 2200mAh LiPo', 'CS-BAT-05')
+    },
+    {
+      id: 6,
+      name: 'Dual 18650 Li-ion Cell & Protection Cradle Kit',
+      category: 'Power & Batteries',
+      component_code: 'CS-BAT-06',
+      description: 'Pair of Samsung/LG 18650 3.7V 3000mAh rechargeable lithium-ion cells with keyed 2-slot spring contact battery enclosure and on-board BMS.',
+      location: 'Electronics Lab · Cabinet C',
+      owner_id: 101,
+      quantity_total: 14,
+      quantity_available: 12,
+      training_required: false,
+      usage_rules: 'Check polarity orientation before insertion. Do not puncture outer insulating wrap.',
+      replacement_value: 28,
+      tags: ['18650', 'battery', 'portable', 'lithium-ion'],
+      auto_approve_trusted: true,
+      active: true,
+      wikimedia_file: 'File:18650 and 21700 lithium ion battery cell.jpg',
+      image_url: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/18650_and_21700_lithium_ion_battery_cell.jpg/960px-18650_and_21700_lithium_ion_battery_cell.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      image_license: 'CC0',
+      image_artist: 'Sevenethics',
+      description_url: 'https://commons.wikimedia.org/wiki/File:18650_and_21700_lithium_ion_battery_cell.jpg',
+      svgArt: generateComponentSvg('18650_battery', 'Dual 18650 Battery Kit', 'CS-BAT-06')
+    },
+    {
+      id: 7,
+      name: 'PLA 3D Printer Filament Spool (1.75mm, 1kg)',
+      category: '3D Printing',
+      component_code: 'CS-FIL-07',
+      description: 'High-precision 1.75mm PLA filament spool (tolerance ±0.02mm) suitable for rapid bracket prototyping, custom enclosures, and coil bobbins.',
+      location: 'Rapid Prototyping Workshop · Bay 1',
+      owner_id: 101,
+      quantity_total: 8,
+      quantity_available: 5,
+      training_required: false,
+      usage_rules: 'Store in desiccated vacuum seal bag after use to prevent moisture absorption. Recommended print temp 205-220°C.',
+      replacement_value: 25,
+      tags: ['3d-printing', 'filament', 'pla', 'prototyping'],
+      auto_approve_trusted: true,
+      active: true,
+      wikimedia_file: 'File:Bobina PLA.jpg',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/4/46/Bobina_PLA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      image_license: 'CC BY-SA 4.0',
+      image_artist: 'RaquelRendo',
+      description_url: 'https://commons.wikimedia.org/wiki/File:Bobina_PLA.jpg',
+      svgArt: generateComponentSvg('pla_filament', 'PLA Filament Spool 1kg', 'CS-FIL-07')
+    },
+    {
+      id: 8,
+      name: 'L298N Dual H-Bridge Motor Driver Module',
+      category: 'Sensors & Actuators',
+      component_code: 'CS-MOT-08',
+      description: 'Dual DC motor / single stepper motor driver with heavy aluminum heat sink, 2A peak current per channel, and 5V on-board logic regulator.',
+      location: 'Robotics Workshop · Storage Rack B',
+      owner_id: 102,
+      quantity_total: 16,
+      quantity_available: 12,
+      training_required: false,
+      usage_rules: 'Tie common ground between microcontroller and motor supply. Remove 5V enable jumper if powering above 12V.',
+      replacement_value: 12,
+      tags: ['motor-driver', 'h-bridge', 'actuator', 'robotics'],
+      auto_approve_trusted: true,
+      active: true,
+      wikimedia_file: 'File:Dosmotorsl298n.jpg',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/1/18/Dosmotorsl298n.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      image_license: 'CC BY-SA 4.0',
+      image_artist: 'Quel.soler',
+      description_url: 'https://commons.wikimedia.org/wiki/File:Dosmotorsl298n.jpg',
+      svgArt: generateComponentSvg('motor_driver', 'L298N Motor Driver', 'CS-MOT-08')
+    },
+    {
+      id: 9,
+      name: 'HC-SR04 Ultrasonic Distance Sensor',
+      category: 'Sensors & Actuators',
+      component_code: 'CS-SEN-09',
+      description: 'Ultrasonic range detector operating at 40kHz with 2cm to 400cm non-contact measurement range, 5V trigger and echo pulses.',
+      location: 'Sensors Locker · Drawer 2',
+      owner_id: 101,
+      quantity_total: 20,
+      quantity_available: 17,
+      training_required: false,
+      usage_rules: 'Echo pin outputs 5V. Use resistor divider when interfacing with 3.3V ESP32 boards.',
+      replacement_value: 8,
+      tags: ['ultrasonic', 'sensor', 'distance', 'obstacle'],
+      auto_approve_trusted: true,
+      active: true,
+      wikimedia_file: 'File:SparkFun HC-SR04 Ultrasonic-Sensor 13959-01a.jpg',
+      image_url: 'https://upload.wikimedia.org/wikipedia/commons/9/99/SparkFun_HC-SR04_Ultrasonic-Sensor_13959-01a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled',
+      image_license: 'CC BY 2.0',
+      image_artist: 'SparkFun Electronics',
+      description_url: 'https://commons.wikimedia.org/wiki/File:SparkFun_HC-SR04_Ultrasonic-Sensor_13959-01a.jpg',
+      svgArt: generateComponentSvg('ultrasonic', 'HC-SR04 Sensor', 'CS-SEN-09')
+    },
+    {
+      id: 10,
+      name: 'DSO150 Handheld Digital Storage Oscilloscope',
+      category: 'Test & Tools',
+      component_code: 'CS-INS-10',
+      description: 'Portable digital oscilloscope with 200kHz analog bandwidth, 1MSa/s real-time sampling rate, 2.4-inch color TFT display, and BNC test clip probe.',
+      location: 'Instrumentation Lab · Shelf 1',
+      owner_id: 101,
+      quantity_total: 5,
+      quantity_available: 3,
+      training_required: true,
+      usage_rules: 'Max input voltage is 50Vpk with 1X probe. Use 10X attenuation probe for signals above 50V.',
+      replacement_value: 65,
+      tags: ['oscilloscope', 'testing', 'debugging', 'waveform', 'signals'],
+      auto_approve_trusted: false,
+      active: true,
+      wikimedia_file: 'File:Analog CRT oscilloscope Tektronix 475A (1977) and digital storage oscilloscope Tektronix TPS 2014B (c. 2012).jpg',
+      image_url: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Analog_CRT_oscilloscope_Tektronix_475A_%281977%29_and_digital_storage_oscilloscope_Tektronix_TPS_2014B_%28c._2012%29.jpg/960px-Analog_CRT_oscilloscope_Tektronix_475A_%281977%29_and_digital_storage_oscilloscope_Tektronix_TPS_2014B_%28c._2012%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+      image_license: 'CC BY-SA 3.0',
+      image_artist: 'Tektronix, Wikimedia Commons',
+      description_url: 'https://commons.wikimedia.org/wiki/File:Analog_CRT_oscilloscope_Tektronix_475A_(1977)_and_digital_storage_oscilloscope_Tektronix_TPS_2014B_(c._2012).jpg',
+      svgArt: generateComponentSvg('oscilloscope', 'DSO150 Oscilloscope', 'CS-INS-10')
+    }
+  ];
+
+  // Bookings with allotment and standard request examples
+  const bookings = [
+    // 1. ALLOTTED BY ADMIN: High priority project allotment directly granted to Maya Chen
+    {
+      id: 1,
+      resource_id: 3, // Raspberry Pi 4B
+      user_id: 1,     // Maya Chen
+      start_at: d(2, 9),
+      end_at: dFuture(3, 18),
+      purpose: 'Autonomous Rover Vision & SLAM Navigation Unit.',
+      status: 'allotted', // Admin direct allotment!
+      decision_reason: 'Direct administrative allotment for Robotics Research Team.',
+      allotted_by: 201, // Admin Dean Alice Cooper
+      created_at: d(2, 8),
+      checked_out_at: d(2, 9),
+      returned_at: null,
+      qr_token: 'CS-ALLOT-RPI-01'
+    },
+
+    // 2. Overdue booking highlight
+    {
+      id: 2,
+      resource_id: 10, // DSO150 Oscilloscope
+      user_id: 8,      // Marcus Vance
+      start_at: d(5, 10),
+      end_at: d(1, 16), // Ended yesterday => OVERDUE!
+      purpose: 'DC-DC buck converter switching frequency analysis.',
+      status: 'checked_out',
+      decision_reason: 'Approved for senior capstone test.',
+      allotted_by: null,
+      created_at: d(6, 9),
+      checked_out_at: d(5, 10),
+      returned_at: null,
+      qr_token: 'CS-QR-BK2-OVERDUE'
+    },
+
+    // 3. Pending request awaiting volunteer review
+    {
+      id: 3,
+      resource_id: 1, // Arduino Uno R3
+      user_id: 2,     // Liam Patel
+      start_at: dFuture(1, 9),
+      end_at: dFuture(2, 17),
+      purpose: 'Smart agricultural soil moisture automated irrigation prototype.',
       status: 'pending',
       decision_reason: '',
-      created_at: d(0, 3),
+      allotted_by: null,
+      created_at: d(0, 4),
       checked_out_at: null,
       returned_at: null,
       qr_token: null
     },
 
-    // --- 3. 28 HISTORICAL COMPLETED BOOKINGS (Spanning 60 days) ---
-    // (Maya Chen - Trusted student, all pristine on-time)
+    // 4. Approved booking ready for pickup
     {
-      id: 10,
-      resource_id: 2,
-      user_id: 1,
-      start_at: d(45, 9),
-      end_at: d(43, 17),
-      purpose: 'Autonomous greenhouse temperature logger prototype.',
-      status: 'returned',
-      decision_reason: 'Approved for IoT project.',
-      created_at: d(47),
-      checked_out_at: d(45, 9),
-      returned_at: d(43, 16), // On time
-      qr_token: 'CS-QR-BK10-HIST'
-    },
-    {
-      id: 11,
-      resource_id: 11,
-      user_id: 1,
-      start_at: d(35, 10),
-      end_at: d(34, 18),
-      purpose: 'Custom ergonomic solder fume extractor duct.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(37),
-      checked_out_at: d(35, 10),
-      returned_at: d(34, 17), // On time
-      qr_token: 'CS-QR-BK11-HIST'
-    },
-    {
-      id: 12,
-      resource_id: 1,
-      user_id: 1,
-      start_at: d(20, 10),
-      end_at: d(18, 17),
-      purpose: 'PWM motor controller signal waveform analysis.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(22),
-      checked_out_at: d(20, 10),
-      returned_at: d(18, 16), // On time
-      qr_token: 'CS-QR-BK12-HIST'
-    },
-    {
-      id: 13,
-      resource_id: 12,
-      user_id: 1,
-      start_at: d(12, 9),
-      end_at: d(10, 17),
-      purpose: 'ROS2 robotics simulation rendering.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(14),
-      checked_out_at: d(12, 9),
-      returned_at: d(10, 16), // On time
-      qr_token: 'CS-QR-BK13-HIST'
+      id: 4,
+      resource_id: 2, // ESP32
+      user_id: 3,     // Sofia Rodriguez
+      start_at: dFuture(1, 10),
+      end_at: dFuture(3, 17),
+      purpose: 'LoRa and BLE gateway relay for campus environment sensor node.',
+      status: 'approved',
+      decision_reason: 'Approved by technical council.',
+      allotted_by: null,
+      created_at: d(1, 9),
+      checked_out_at: null,
+      returned_at: null,
+      qr_token: 'CS-QR-BK4-ESP32'
     },
 
-    // (Sofia Rodriguez - Campus Legend, 7 bookings, impeccable record)
+    // 5. Completed historical return (Maya Chen)
     {
-      id: 14,
-      resource_id: 9,
-      user_id: 3,
-      start_at: d(55, 9),
-      end_at: d(54, 18),
-      purpose: 'Geographic GIS campus tree canopy survey.',
-      status: 'returned',
-      decision_reason: 'Approved for GIS lab.',
-      created_at: d(57),
-      checked_out_at: d(55, 9),
-      returned_at: d(54, 17),
-      qr_token: 'CS-QR-BK14-HIST'
-    },
-    {
-      id: 15,
-      resource_id: 9,
-      user_id: 3,
-      start_at: d(40, 9),
-      end_at: d(39, 18),
-      purpose: 'Architectural roof solar panel thermal mapping.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(42),
-      checked_out_at: d(40, 9),
-      returned_at: d(39, 17),
-      qr_token: 'CS-QR-BK15-HIST'
-    },
-    {
-      id: 16,
-      resource_id: 4,
-      user_id: 3,
-      start_at: d(32, 10),
-      end_at: d(30, 18),
-      purpose: 'Documentary on student wind tunnel experiments.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(34),
-      checked_out_at: d(32, 10),
-      returned_at: d(30, 17),
-      qr_token: 'CS-QR-BK16-HIST'
-    },
-    {
-      id: 17,
-      resource_id: 3,
-      user_id: 3,
-      start_at: d(24, 9),
-      end_at: d(22, 17),
-      purpose: 'Hardware acceleration of FFT algorithms.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(26),
-      checked_out_at: d(24, 9),
-      returned_at: d(22, 16),
-      qr_token: 'CS-QR-BK17-HIST'
-    },
-    {
-      id: 18,
-      resource_id: 12,
-      user_id: 3,
+      id: 5,
+      resource_id: 4, // Toroid Coil
+      user_id: 1,     // Maya Chen
       start_at: d(15, 9),
-      end_at: d(13, 18),
-      purpose: 'Point cloud photogrammetry processing.',
+      end_at: d(12, 17),
+      purpose: 'Wireless inductive power transmission bench test.',
       status: 'returned',
       decision_reason: 'Approved.',
+      allotted_by: null,
       created_at: d(17),
       checked_out_at: d(15, 9),
-      returned_at: d(13, 17),
-      qr_token: 'CS-QR-BK18-HIST'
-    },
-
-    // (Liam Patel - Reliable, 4 bookings, minor wear on one)
-    {
-      id: 19,
-      resource_id: 5,
-      user_id: 2,
-      start_at: d(50, 10),
-      end_at: d(48, 18),
-      purpose: 'Alumni homecoming gala photo coverage.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(52),
-      checked_out_at: d(50, 10),
-      returned_at: d(48, 17),
-      qr_token: 'CS-QR-BK19-HIST'
-    },
-    {
-      id: 20,
-      resource_id: 7,
-      user_id: 2,
-      start_at: d(38, 13),
-      end_at: d(37, 18),
-      purpose: 'Student government candidate debate podcast recording.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(40),
-      checked_out_at: d(38, 13),
-      returned_at: d(37, 17),
-      qr_token: 'CS-QR-BK20-HIST'
-    },
-    {
-      id: 21,
-      resource_id: 8,
-      user_id: 2,
-      start_at: d(25, 9),
-      end_at: d(24, 17),
-      purpose: 'Acoustic field recordings in student center atrium.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(27),
-      checked_out_at: d(25, 9),
-      returned_at: d(24, 16),
-      qr_token: 'CS-QR-BK21-HIST'
-    },
-
-    // (Aisha Bello - Reliable, 3 bookings, on time)
-    {
-      id: 22,
-      resource_id: 6,
-      user_id: 5,
-      start_at: d(42, 9),
-      end_at: d(40, 17),
-      purpose: 'Rowing club regatta action footage.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(44),
-      checked_out_at: d(42, 9),
-      returned_at: d(40, 16),
-      qr_token: 'CS-QR-BK22-HIST'
-    },
-    {
-      id: 23,
-      resource_id: 7,
-      user_id: 5,
-      start_at: d(28, 14),
-      end_at: d(27, 19),
-      purpose: 'Senior recital acoustic vocal tracking.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(30),
-      checked_out_at: d(28, 14),
-      returned_at: d(27, 18),
-      qr_token: 'CS-QR-BK23-HIST'
-    },
-
-    // (Jin Woo - Trusted, electronics specialist)
-    {
-      id: 24,
-      resource_id: 1,
-      user_id: 6,
-      start_at: d(52, 10),
-      end_at: d(50, 16),
-      purpose: 'Solar inverter efficiency waveform measurement.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(54),
-      checked_out_at: d(52, 10),
-      returned_at: d(50, 15),
-      qr_token: 'CS-QR-BK24-HIST'
-    },
-    {
-      id: 25,
-      resource_id: 2,
-      user_id: 6,
-      start_at: d(33, 9),
-      end_at: d(31, 17),
-      purpose: 'LoRaWAN smart campus weather node.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(35),
-      checked_out_at: d(33, 9),
-      returned_at: d(31, 16),
-      qr_token: 'CS-QR-BK25-HIST'
-    },
-    {
-      id: 26,
-      resource_id: 13,
-      user_id: 6,
-      start_at: d(18, 9),
-      end_at: d(16, 17),
-      purpose: 'Finite element structural stress analysis.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(20),
-      checked_out_at: d(18, 9),
-      returned_at: d(16, 16),
-      qr_token: 'CS-QR-BK26-HIST'
-    },
-
-    // (Clara Oswald - Sports enthusiast, on time)
-    {
-      id: 27,
-      resource_id: 14,
-      user_id: 7,
-      start_at: d(48, 14),
-      end_at: d(47, 18),
-      purpose: 'Intramural weekend Spikeball tournament.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(50),
-      checked_out_at: d(48, 14),
-      returned_at: d(47, 17),
-      qr_token: 'CS-QR-BK27-HIST'
-    },
-    {
-      id: 28,
-      resource_id: 15,
-      user_id: 7,
-      start_at: d(22, 8),
-      end_at: d(21, 14),
-      purpose: 'Half-marathon campus training pacing trials.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(24),
-      checked_out_at: d(22, 8),
-      returned_at: d(21, 13),
-      qr_token: 'CS-QR-BK28-HIST'
-    },
-
-    // (Marcus Vance - Had 1 late return, and 1 damage incident resolved)
-    {
-      id: 29,
-      resource_id: 11, // Prusa MK4
-      user_id: 8,
-      start_at: d(58, 9),
-      end_at: d(56, 17),
-      purpose: 'Quadcopter frame prototype iteration.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(60),
-      checked_out_at: d(58, 9),
-      returned_at: d(55, 12), // RETURNED 1 DAY LATE (-10)
-      qr_token: 'CS-QR-BK29-HIST'
-    },
-    {
-      id: 30,
-      resource_id: 10, // Bambu Lab X1
-      user_id: 8,
-      start_at: d(44, 9),
-      end_at: d(42, 17),
-      purpose: 'Robotics chassis mounting hubs.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(46),
-      checked_out_at: d(44, 9),
-      returned_at: d(42, 16),
-      qr_token: 'CS-QR-BK30-HIST'
-    },
-
-    // (Tariq Al-Mansoor - Newcomer, 1 successful return)
-    {
-      id: 31,
-      resource_id: 13,
-      user_id: 4,
-      start_at: d(16, 9),
-      end_at: d(14, 18),
-      purpose: 'Python machine learning image classification assignment.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(18),
-      checked_out_at: d(16, 9),
-      returned_at: d(14, 17),
-      qr_token: 'CS-QR-BK31-HIST'
-    },
-
-    // More variety bookings
-    {
-      id: 32,
-      resource_id: 6,
-      user_id: 2,
-      start_at: d(14, 10),
-      end_at: d(13, 16),
-      purpose: 'Cycling club trail ride footage.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(16),
-      checked_out_at: d(14, 10),
-      returned_at: d(13, 15),
-      qr_token: 'CS-QR-BK32-HIST'
-    },
-    {
-      id: 33,
-      resource_id: 14,
-      user_id: 4,
-      start_at: d(8, 14),
-      end_at: d(7, 19),
-      purpose: 'Dorm outdoor recreation afternoon.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(10),
-      checked_out_at: d(8, 14),
-      returned_at: d(7, 18),
-      qr_token: 'CS-QR-BK33-HIST'
-    },
-    {
-      id: 34,
-      resource_id: 8,
-      user_id: 5,
-      start_at: d(36, 10),
-      end_at: d(35, 17),
-      purpose: 'Campus radio broadcast interview series.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(38),
-      checked_out_at: d(36, 10),
-      returned_at: d(35, 16),
-      qr_token: 'CS-QR-BK34-HIST'
-    },
-    {
-      id: 35,
-      resource_id: 5,
-      user_id: 3,
-      start_at: d(29, 9),
-      end_at: d(28, 18),
-      purpose: 'Robotics lab prototype high-speed camera documentation.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(31),
-      checked_out_at: d(29, 9),
-      returned_at: d(28, 17),
-      qr_token: 'CS-QR-BK35-HIST'
-    },
-    {
-      id: 36,
-      resource_id: 15,
-      user_id: 7,
-      start_at: d(11, 8),
-      end_at: d(10, 16),
-      purpose: 'Track & field relay squad split timing calibration.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(13),
-      checked_out_at: d(11, 8),
-      returned_at: d(10, 15),
-      qr_token: 'CS-QR-BK36-HIST'
-    },
-    {
-      id: 37,
-      resource_id: 3,
-      user_id: 1,
-      start_at: d(27, 9),
-      end_at: d(25, 17),
-      purpose: 'Digital Signal Processing hardware accelerator synthesis.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(29),
-      checked_out_at: d(27, 9),
-      returned_at: d(25, 16),
-      qr_token: 'CS-QR-BK37-HIST'
-    },
-    {
-      id: 38,
-      resource_id: 12,
-      user_id: 6,
-      start_at: d(21, 10),
-      end_at: d(19, 18),
-      purpose: 'Embedded systems RTOS kernel benchmark testing.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(23),
-      checked_out_at: d(21, 10),
-      returned_at: d(19, 17),
-      qr_token: 'CS-QR-BK38-HIST'
-    },
-    {
-      id: 39,
-      resource_id: 7,
-      user_id: 2,
-      start_at: d(6, 12),
-      end_at: d(5, 18),
-      purpose: 'Engineering symposium keynote speech audio capture.',
-      status: 'returned',
-      decision_reason: 'Approved.',
-      created_at: d(8),
-      checked_out_at: d(6, 12),
-      returned_at: d(5, 17),
-      qr_token: 'CS-QR-BK39-HIST'
+      returned_at: d(12, 16),
+      qr_token: 'CS-QR-BK5-HIST'
     }
   ];
 
-  // Condition reports for bookings
   const conditionReports = [
-    // Marcus Vance Booking #1 (Overdue) - Before report logged
     {
       id: 1,
       booking_id: 1,
-      reporter_id: 8,
+      reporter_id: 201,
       stage: 'before',
       condition: 'good',
-      notes: 'Oscilloscope powered on clean; both probe cables in good shape.',
-      created_at: d(4, 9)
+      notes: 'Brand new Raspberry Pi 4B kit with acrylic case and heatsinks pre-installed.',
+      photoUrls: [],
+      created_at: d(2, 9)
     },
-    // Maya Chen Booking #2 - Before report logged (ready for checkout demo!)
     {
       id: 2,
       booking_id: 2,
+      reporter_id: 101,
+      stage: 'before',
+      condition: 'good',
+      notes: 'BNC probe verified with test square wave.',
+      photoUrls: [],
+      created_at: d(5, 10)
+    },
+    {
+      id: 3,
+      booking_id: 5,
       reporter_id: 1,
       stage: 'before',
       condition: 'good',
-      notes: 'Cinema rig checked. Sensor clear, both batteries at 100%.',
-      created_at: d(0, 2)
+      notes: 'Coil intact with undamaged insulation.',
+      photoUrls: [],
+      created_at: d(15, 9)
     },
-    // Marcus Vance Booking #30 - Damaged report leading to Incident #1
-    {
-      id: 3,
-      booking_id: 30,
-      reporter_id: 101, // Owner reported on return
-      stage: 'after',
-      condition: 'damaged',
-      notes: 'PEI magnetic build plate deeply gouged by nozzle due to incorrect z-offset override.',
-      created_at: d(42, 16)
-    },
-    // Liam Patel Booking #20 - Minor issue report
     {
       id: 4,
-      booking_id: 20,
-      reporter_id: 2,
+      booking_id: 5,
+      reporter_id: 101,
       stage: 'after',
-      condition: 'minor_issue',
-      notes: 'Lavalier wire outer insulation has slight fray near 3.5mm plug; still functional.',
-      created_at: d(37, 17)
+      condition: 'good',
+      notes: 'Returned in original static safe bag.',
+      photoUrls: [],
+      created_at: d(12, 16)
     }
   ];
 
-  // Incidents: Human-reviewed governance demonstration
-  const incidents = [
-    {
-      id: 1,
-      booking_id: 30,
-      reporter_id: 101, // Dr. Miller
-      incident_type: 'damage',
-      description: 'PEI build plate scraped and ruined on Bambu X1 printer.',
-      status: 'resolved',
-      resolution: 'Human Review Meeting with Marcus Vance: Student admitted error and agreed to assist lab tech with nozzle calibration workshop. No monetary fine levied per educational policy. Plate replaced from lab consumable budget.',
-      created_at: d(42, 16)
-    },
-    {
-      id: 2,
-      booking_id: 1, // Open incident for overdue oscilloscope!
-      reporter_id: 101, // Dr. Miller
-      incident_type: 'delay',
-      description: 'Digital Storage Oscilloscope is past scheduled return date and required for B204 lab session.',
-      status: 'open',
-      resolution: '',
-      created_at: d(0, 12)
-    },
-    {
-      id: 3,
-      booking_id: 20,
-      reporter_id: 102, // Sarah Jenkins
-      incident_type: 'damage',
-      description: 'Frayed lavalier cable reported on Rode Wireless kit.',
-      status: 'open',
-      resolution: '',
-      created_at: d(37, 18)
-    }
-  ];
+  const incidents = [];
 
-  // Audit Events: complete immutable history trail
   const auditEvents = [
     {
       id: 1,
       actor_id: 201,
-      action: 'system_initialized',
-      entity_type: 'system',
+      action: 'admin_allotment',
+      entity_type: 'booking',
       entity_id: 1,
-      details: 'CampusShare equipment accountability system seeded with 15 resources.',
-      created_at: d(60)
+      details: 'Admin allotted Raspberry Pi 4 Model B (4GB RAM) to student Maya Chen for Capstone Robotics Project.',
+      created_at: d(2, 8)
     },
     {
       id: 2,
       actor_id: 101,
-      action: 'resource_listed',
+      action: 'component_added',
       entity_type: 'resource',
-      entity_id: 1,
-      details: 'Listed Digital Storage Oscilloscope 100MHz with training gate.',
-      created_at: d(60)
-    },
-    {
-      id: 3,
-      actor_id: 8,
-      action: 'booking_requested',
-      entity_type: 'booking',
-      entity_id: 1,
-      details: 'Requested Digital Storage Oscilloscope 100MHz.',
-      created_at: d(5, 10)
-    },
-    {
-      id: 4,
-      actor_id: 101,
-      action: 'booking_approved',
-      entity_type: 'booking',
-      entity_id: 1,
-      details: 'Approved request for senior design RF test bench.',
-      created_at: d(4, 8)
-    },
-    {
-      id: 5,
-      actor_id: 8,
-      action: 'condition_before_recorded',
-      entity_type: 'booking',
-      entity_id: 1,
-      details: 'Initial condition: good.',
-      created_at: d(4, 9)
-    },
-    {
-      id: 6,
-      actor_id: 101,
-      action: 'resource_checked_out',
-      entity_type: 'booking',
-      entity_id: 1,
-      details: 'Handover confirmed via physical equipment desk.',
-      created_at: d(4, 9)
-    },
-    {
-      id: 7,
-      actor_id: 101,
-      action: 'incident_opened',
-      entity_type: 'incident',
       entity_id: 2,
-      details: 'Delay flagged: Equipment overdue by 24h+.',
-      created_at: d(0, 12)
-    },
-    {
-      id: 8,
-      actor_id: 1,
-      action: 'booking_requested',
-      entity_type: 'booking',
-      entity_id: 2,
-      details: 'Requested Sony Alpha A7 IV Cinema Rig.',
-      created_at: d(1, 8)
-    },
-    {
-      id: 9,
-      actor_id: 102,
-      action: 'booking_approved',
-      entity_type: 'booking',
-      entity_id: 2,
-      details: 'Approved for robotics showcase video.',
-      created_at: d(1, 9)
-    },
-    {
-      id: 10,
-      actor_id: 5,
-      action: 'booking_waitlisted',
-      entity_type: 'booking',
-      entity_id: 3,
-      details: 'Conflict detected with Booking #2; automatically placed in waitlist queue.',
-      created_at: d(1, 11)
+      details: 'Council Volunteer Arun Patel registered ESP32 DevKit V1 stock.',
+      created_at: d(20)
     }
   ];
 

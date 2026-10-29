@@ -1,27 +1,34 @@
 /**
- * CampusShare Main Application & Hash Router
+ * UniHive Main Application & Hash Router
+ * Production-Ready Modular Architecture
  */
 
 import * as Store from './store.js';
 import * as Rules from './rules.js';
+import * as Auth from './auth.js';
 import * as UI from './ui.js';
 
 import { renderExplore } from './views/explore.js';
 import { renderResourceDetail } from './views/resourceDetail.js';
 import { renderMyBookings } from './views/myBookings.js';
-import { renderOwnerDashboard } from './views/ownerDashboard.js';
+import { renderVolunteer } from './views/volunteer.js';
 import { renderIncidents } from './views/incidents.js';
 import { renderActivity } from './views/activity.js';
 import { renderImpact } from './views/impact.js';
 import { renderAdmin } from './views/admin.js';
 import { renderNotifications } from './views/notifications.js';
+import { renderLogin } from './views/login.js';
+import { renderSignup } from './views/signup.js';
 import { renderNotFound } from './views/notFound.js';
 
 const routes = [
   { pattern: /^#\/?$/, handler: renderExplore },
+  { pattern: /^#\/login\/?$/, handler: renderLogin },
+  { pattern: /^#\/signup\/?$/, handler: renderSignup },
   { pattern: /^#\/resource\/(\d+)$/, handler: (match, c) => renderResourceDetail({ id: match[1] }, c) },
   { pattern: /^#\/my-bookings\/?$/, handler: renderMyBookings },
-  { pattern: /^#\/owner\/?$/, handler: renderOwnerDashboard },
+  { pattern: /^#\/volunteer\/?$/, handler: renderVolunteer },
+  { pattern: /^#\/owner\/?$/, handler: renderVolunteer }, // Alias for backwards compatibility
   { pattern: /^#\/incidents\/?$/, handler: renderIncidents },
   { pattern: /^#\/activity\/?$/, handler: renderActivity },
   { pattern: /^#\/impact\/?$/, handler: renderImpact },
@@ -31,18 +38,68 @@ const routes = [
 
 async function updateNavbarState() {
   const [currentUser, bookings, incidents, reports, events] = await Promise.all([
-    Store.getCurrentUser(),
+    Auth.getSessionUser(),
     Store.listBookings(),
     Store.listIncidents(),
     Store.getConditionReports(),
     Store.listAuditEvents()
   ]);
 
-  // 1. Update Trust Badge in Navbar
+  // 1. Role-based Nav Item Visibility
+  const myLoansNav = document.getElementById('nav-item-my-loans');
+  const volunteerNav = document.getElementById('nav-item-volunteer');
+  const incidentsNav = document.getElementById('nav-item-incidents');
+  const activityNav = document.getElementById('nav-item-activity');
+  const adminNav = document.getElementById('nav-item-admin');
+
+  if (myLoansNav) myLoansNav.style.display = currentUser ? 'block' : 'none';
+  if (volunteerNav) volunteerNav.style.display = (currentUser && (currentUser.role === 'volunteer' || currentUser.role === 'admin' || currentUser.role === 'owner')) ? 'block' : 'none';
+  if (incidentsNav) incidentsNav.style.display = (currentUser && (currentUser.role === 'volunteer' || currentUser.role === 'admin' || currentUser.role === 'owner')) ? 'block' : 'none';
+  if (activityNav) activityNav.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
+  if (adminNav) adminNav.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
+
+  // 2. Auth Profile / Sign In Box in Navbar
+  const authBox = document.getElementById('nav-auth-box');
+  if (authBox) {
+    if (currentUser) {
+      const roleColor = currentUser.role === 'admin' ? 'sticker-lilac' : (currentUser.role === 'volunteer' ? 'sticker-yellow' : 'sticker-mint');
+      authBox.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-paper); border: var(--border-medium); padding: 0.25rem 0.55rem; border-radius: var(--radius-sm); box-shadow: var(--shadow-hard-sm);">
+          <span class="sticker ${roleColor}" style="font-size: 0.65rem; padding: 0.1rem 0.35rem;">
+            ${UI.escapeHtml(currentUser.role.toUpperCase())}
+          </span>
+          <span style="font-weight: 800; font-size: 0.85rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${UI.escapeHtml(currentUser.name.split(' ')[0])}
+          </span>
+          <button type="button" id="btn-nav-logout" class="btn-brut btn-sm btn-danger" style="padding: 0.15rem 0.55rem; font-size: 0.75rem; min-height: 26px; border-width: 2px; box-shadow: 2px 2px 0 #000; cursor: pointer;">
+            Sign Out
+          </button>
+        </div>
+      `;
+
+      const logoutBtn = document.getElementById('btn-nav-logout');
+      if (logoutBtn) {
+        logoutBtn.onclick = async (e) => {
+          e.preventDefault();
+          await Auth.logout();
+          UI.showToast('Signed out of UniHive.', 'info');
+          window.location.hash = '#/login';
+          window.location.reload();
+        };
+      }
+    } else {
+      authBox.innerHTML = `
+        <a href="#/login" class="btn-brut btn-sm btn-secondary" style="padding: 0.35rem 0.65rem;">Sign In</a>
+        <a href="#/signup" class="btn-brut btn-sm btn-primary" style="padding: 0.35rem 0.65rem;">Register</a>
+      `;
+    }
+  }
+
+  // 3. Update Trust Badge in Navbar
   const trustPill = document.getElementById('nav-trust-pill');
   const trustLevelText = document.getElementById('nav-trust-level');
   if (trustPill && trustLevelText) {
-    if (currentUser.role === 'student') {
+    if (currentUser && currentUser.role === 'student') {
       const trust = Rules.calculateTrustScore(currentUser.id, bookings, incidents, reports);
       trustLevelText.textContent = `${trust.level} (${trust.score}p)`;
       trustPill.className = `sticker ${trust.badgeClass}`;
@@ -52,7 +109,7 @@ async function updateNavbarState() {
     }
   }
 
-  // 2. Update Notification Bell & Popover (2.4)
+  // 4. Update Notification Bell & Popover
   const bellBtn = document.getElementById('nav-notif-bell');
   const badge = document.getElementById('notif-badge');
   const popover = document.getElementById('notif-popover');
@@ -60,10 +117,15 @@ async function updateNavbarState() {
   const markReadBtn = document.getElementById('btn-mark-all-read');
 
   if (bellBtn && badge && popover && notifList) {
+    if (!currentUser) {
+      bellBtn.style.display = 'none';
+      return;
+    }
+    bellBtn.style.display = 'inline-flex';
+
     const userBookings = bookings.filter(b => b.user_id === currentUser.id);
     const userBookingIds = userBookings.map(b => b.id);
 
-    // Identify user-relevant events
     const relevantEvents = events.filter(e => 
       e.actor_id === currentUser.id ||
       (e.entity_type === 'booking' && userBookingIds.includes(e.entity_id)) ||
@@ -158,29 +220,7 @@ async function route() {
   }
 }
 
-async function initNavbarUserSwitcher() {
-  const select = document.getElementById('global-role-switcher');
-  if (!select) return;
-
-  const [users, current] = await Promise.all([
-    Store.listUsers(),
-    Store.getCurrentUser()
-  ]);
-
-  select.innerHTML = users.map(u => `
-    <option value="${u.id}" ${u.id === current.id ? 'selected' : ''}>
-      ${UI.escapeHtml(u.name)} (${UI.escapeHtml(u.role)})
-    </option>
-  `).join('');
-
-  select.addEventListener('change', async (e) => {
-    await Store.setCurrentUser(e.target.value);
-    UI.showToast(`Switched active profile to ${select.options[select.selectedIndex].text}`, 'info');
-    await route();
-  });
-}
-
-// Register PWA Service Worker (3.3)
+// Register PWA Service Worker
 function initPwa() {
   if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(err => {
@@ -193,20 +233,7 @@ async function boot() {
   try {
     await Store.initStore();
     UI.initTheme();
-    await initNavbarUserSwitcher();
     initPwa();
-
-    // Reset demo button handler
-    const resetBtn = document.getElementById('btn-reset-demo');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', async () => {
-        if (confirm('Reset demo state to initial seed data? All temporary bookings and modifications will be refreshed.')) {
-          await Store.resetStore();
-          UI.showToast('Demo store successfully reseeded!', 'success');
-          setTimeout(() => window.location.reload(), 400);
-        }
-      });
-    }
 
     window.addEventListener('hashchange', route);
     await route();

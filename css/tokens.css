@@ -1,4 +1,4 @@
-/* CampusShare Neo-Brutalist Design Tokens */
+/* UniHive Neo-Brutalist Design Tokens */
 :root {
   --color-ink: #111111;
   --color-paper: #FFF8E7; /* Warm notebook cream */
@@ -33,27 +33,28 @@
   --dot-grid-color: rgba(17, 17, 17, 0.08);
 }
 
+/* High Contrast & Enhanced Readability Greyish Dark Mode */
 [data-theme="dark"] {
-  --color-ink: #F2EFE9;
-  --color-paper: #16161D; /* Dark notebook slate */
-  --color-paper-card: #1F1F2A;
-  --color-primary: #FFD93D;
-  --color-coral: #FF6B6B;
-  --color-blue: #60A5FA;
-  --color-mint: #4ADE80;
-  --color-lilac: #C084FC;
-  --color-white: #1F1F2A;
-  --color-muted: #A8A8B4;
-  --color-border: #F2EFE9;
+  --color-ink: #F0F6FC;         /* High-contrast crisp white text */
+  --color-paper: #22272E;       /* Comfortable charcoal-slate grey canvas (replaces pitch black) */
+  --color-paper-card: #2D333B;  /* Elevated slate card surface */
+  --color-primary: #FFD93D;     /* High-visibility primary yellow */
+  --color-coral: #FF7B72;       /* Alert coral */
+  --color-blue: #58A6FF;        /* Bright readable sky blue */
+  --color-mint: #3FB950;        /* Vivid emerald mint */
+  --color-lilac: #D2A8FF;       /* Clear bright lilac */
+  --color-white: #FFFFFF;
+  --color-muted: #ADBAC7;       /* High-contrast readable secondary text */
+  --color-border: #545D68;      /* Clean defined slate borders */
 
-  --border-thick: 3px solid var(--color-ink);
-  --border-medium: 2px solid var(--color-ink);
-  --border-thin: 1px solid var(--color-ink);
+  --border-thick: 2px solid #545D68;
+  --border-medium: 2px solid #545D68;
+  --border-thin: 1px solid #444C56;
 
-  --shadow-hard: 6px 6px 0 var(--color-primary);
-  --shadow-hard-sm: 3px 3px 0 var(--color-primary);
-  --shadow-hard-lg: 10px 10px 0 var(--color-primary);
-  --shadow-hard-active: 2px 2px 0 var(--color-primary);
+  --shadow-hard: 4px 4px 0 #111418;
+  --shadow-hard-sm: 2px 2px 0 #111418;
+  --shadow-hard-lg: 6px 6px 0 #111418;
+  --shadow-hard-active: 1px 1px 0 #111418;
 
-  --dot-grid-color: rgba(242, 239, 233, 0.07);
+  --dot-grid-color: rgba(240, 246, 252, 0.05);
 }

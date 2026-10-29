@@ -1,5 +1,5 @@
 /**
- * CampusShare Pure Business Rules Engine
+ * UniHive Pure Business Rules Engine
  * Zero DOM dependencies; strictly functional and testable.
  */
 
@@ -10,34 +10,51 @@ export const BOOKING_STATUSES = {
   WAITLISTED: 'waitlisted',
   CHECKED_OUT: 'checked_out',
   RETURNED: 'returned',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  ALLOTTED: 'allotted' // Exclusively granted by Admin
 };
 
 export const ROLES = {
   STUDENT: 'student',
-  OWNER: 'owner',
-  ADMIN: 'admin'
+  VOLUNTEER: 'volunteer',
+  ADMIN: 'admin',
+  OWNER: 'volunteer' // Backwards compatibility with legacy fixtures
 };
 
 export const CATEGORY_CO2_SAVINGS_KG = {
-  'Lab Kits': 15,
+  'Microcontrollers': 12,
+  'Power & Batteries': 18,
+  'Prototyping & Coils': 10,
+  '3D Printing': 35,
+  'Sensors & Actuators': 8,
+  'Test & Tools': 25,
   'Electronics': 15,
-  'Cameras': 25,
-  'Photography': 25,
-  'Audio': 12,
-  'Sports': 8,
-  'Drones': 35,
-  '3D Printers': 45,
-  'Laptops': 60,
-  'AV Equipment': 20,
   'Default': 10
 };
+
+/**
+ * Checks if actor has permission to add or remove catalog components
+ * (Both Admins and Council Volunteers have this permission)
+ */
+export function canManageComponents(actor) {
+  if (!actor) return false;
+  return actor.role === ROLES.ADMIN || actor.role === ROLES.VOLUNTEER || actor.role === 'owner';
+}
+
+/**
+ * Checks if actor has permission to allot components directly to students
+ * (EXCLUSIVELY restricted to Administrator)
+ */
+export function canAllotComponents(actor) {
+  if (!actor) return false;
+  return actor.role === ROLES.ADMIN;
+}
 
 /**
  * Checks if a booking is currently overdue.
  */
 export function isOverdue(booking, now = new Date()) {
-  if (!booking || booking.status !== BOOKING_STATUSES.CHECKED_OUT) {
+  if (!booking || (booking.status !== BOOKING_STATUSES.CHECKED_OUT && booking.status !== BOOKING_STATUSES.ALLOTTED)) {
     return false;
   }
   const nowDate = new Date(now).getTime();
@@ -57,29 +74,29 @@ export function isOverlapping(startA, endA, startB, endB) {
 }
 
 /**
- * Finds any active approved or checked-out booking overlapping the requested slot.
+ * Finds any active approved, checked-out, or allotted booking overlapping the requested slot.
  */
 export function findOverlappingBooking(resourceId, startAt, endAt, bookings = [], excludeBookingId = null) {
   return bookings.find(b => {
     if (b.resource_id !== resourceId) return false;
     if (excludeBookingId && b.id === excludeBookingId) return false;
-    if (b.status !== BOOKING_STATUSES.APPROVED && b.status !== BOOKING_STATUSES.CHECKED_OUT) return false;
+    if (b.status !== BOOKING_STATUSES.APPROVED && b.status !== BOOKING_STATUSES.CHECKED_OUT && b.status !== BOOKING_STATUSES.ALLOTTED) return false;
     return isOverlapping(startAt, endAt, b.start_at, b.end_at);
   }) || null;
 }
 
 /**
- * Checks whether a user can make a request for a resource.
+ * Checks whether a user can make a request for a component.
  */
 export function validateBookingRequest(user, resource, userActiveBookingsCount, startAt, endAt, purpose, now = new Date()) {
   if (!user) {
-    return { valid: false, error: 'User must be signed in.' };
+    return { valid: false, error: 'User must be signed in to request components.' };
   }
   if (!resource || !resource.active) {
-    return { valid: false, error: 'Resource is not available or has been archived.' };
+    return { valid: false, error: 'Component is currently not in service or has been decommissioned.' };
   }
   if (!purpose || !purpose.trim()) {
-    return { valid: false, error: 'A clear purpose for the booking is required.' };
+    return { valid: false, error: 'A project purpose or course requirement description is required.' };
   }
   const startDate = new Date(startAt);
   const endDate = new Date(endAt);
@@ -95,11 +112,11 @@ export function validateBookingRequest(user, resource, userActiveBookingsCount, 
     return { valid: false, error: 'End time must be after start time.' };
   }
 
-  // Fair use check: at most 3 active or pending bookings
-  if (userActiveBookingsCount >= 3) {
+  // Fair use check: at most 4 active or pending bookings
+  if (userActiveBookingsCount >= 4) {
     return {
       valid: false,
-      error: 'Fair-use limit reached: you may have at most three active or pending requests at a time.'
+      error: 'Fair-use allocation limit reached: you may have at most four active or pending requests simultaneously.'
     };
   }
 
@@ -109,7 +126,7 @@ export function validateBookingRequest(user, resource, userActiveBookingsCount, 
     if (!trained) {
       return {
         valid: false,
-        error: `This resource requires verified training for ${resource.category}. Your profile has not completed this certification.`
+        error: `This component requires verified lab certification for ${resource.category}.`
       };
     }
   }
@@ -142,7 +159,8 @@ export function determineInitialBookingStatus(resourceId, startAt, endAt, existi
 export function canDecideBooking(actor, booking, resource) {
   if (!actor || !booking) return false;
   if (actor.role === ROLES.ADMIN) return true;
-  return actor.role === ROLES.OWNER && resource && resource.owner_id === actor.id;
+  if (actor.role === ROLES.VOLUNTEER || actor.role === 'owner') return true;
+  return false;
 }
 
 /**
@@ -169,14 +187,14 @@ export function decideBooking(booking, decision, reason, resourceBookings = []) 
     return {
       success: true,
       status: BOOKING_STATUSES.APPROVED,
-      decision_reason: reason || 'Approved by resource owner.'
+      decision_reason: reason || 'Approved by council volunteer.'
     };
   }
 
   return {
     success: true,
     status: BOOKING_STATUSES.REJECTED,
-    decision_reason: reason || 'Not approved by resource owner.'
+    decision_reason: reason || 'Not approved by council review.'
   };
 }
 
@@ -187,8 +205,9 @@ export function canCancelBooking(actor, booking) {
   if (!actor || !booking) return false;
   const isRequester = actor.id === booking.user_id;
   const isAdmin = actor.role === ROLES.ADMIN;
+  const isVolunteer = actor.role === ROLES.VOLUNTEER || actor.role === 'owner';
   const cancellable = [BOOKING_STATUSES.PENDING, BOOKING_STATUSES.WAITLISTED, BOOKING_STATUSES.APPROVED];
-  return (isRequester || isAdmin) && cancellable.includes(booking.status);
+  return (isRequester || isAdmin || isVolunteer) && cancellable.includes(booking.status);
 }
 
 /**
@@ -198,7 +217,7 @@ export function findWaitlistCandidateForPromotion(resourceId, allBookings = [], 
   const activeBookings = allBookings.filter(b => 
     b.resource_id === resourceId &&
     b.id !== ignoreBookingId &&
-    (b.status === BOOKING_STATUSES.APPROVED || b.status === BOOKING_STATUSES.CHECKED_OUT)
+    (b.status === BOOKING_STATUSES.APPROVED || b.status === BOOKING_STATUSES.CHECKED_OUT || b.status === BOOKING_STATUSES.ALLOTTED)
   );
 
   const waitlisted = allBookings
@@ -220,11 +239,11 @@ export function findWaitlistCandidateForPromotion(resourceId, allBookings = [], 
 export function canAddConditionReport(actor, booking, stage, resource) {
   if (!actor || !booking) return false;
   const isRequester = actor.id === booking.user_id;
-  const isManager = actor.role === ROLES.ADMIN || (actor.role === ROLES.OWNER && resource && resource.owner_id === actor.id);
-  if (!isRequester && !isManager) return false;
+  const isStaff = actor.role === ROLES.ADMIN || actor.role === ROLES.VOLUNTEER || actor.role === 'owner';
+  if (!isRequester && !isStaff) return false;
 
   if (stage === 'before') {
-    return booking.status === BOOKING_STATUSES.APPROVED;
+    return booking.status === BOOKING_STATUSES.APPROVED || booking.status === BOOKING_STATUSES.ALLOTTED;
   }
   if (stage === 'after') {
     return booking.status === BOOKING_STATUSES.CHECKED_OUT;
@@ -237,7 +256,7 @@ export function canAddConditionReport(actor, booking, stage, resource) {
  */
 export function canCheckout(actor, booking, conditionReports = [], resource) {
   if (!canDecideBooking(actor, booking, resource)) return false;
-  if (booking.status !== BOOKING_STATUSES.APPROVED) return false;
+  if (booking.status !== BOOKING_STATUSES.APPROVED && booking.status !== BOOKING_STATUSES.ALLOTTED) return false;
   const hasBeforeReport = conditionReports.some(r => r.booking_id === booking.id && r.stage === 'before');
   return hasBeforeReport;
 }
@@ -258,8 +277,8 @@ export function canReturn(actor, booking, conditionReports = [], resource) {
 export function canReportIncident(actor, booking, resource) {
   if (!actor || !booking) return false;
   const isRequester = actor.id === booking.user_id;
-  const isManager = actor.role === ROLES.ADMIN || (actor.role === ROLES.OWNER && resource && resource.owner_id === actor.id);
-  return isRequester || isManager;
+  const isStaff = actor.role === ROLES.ADMIN || actor.role === ROLES.VOLUNTEER || actor.role === 'owner';
+  return isRequester || isStaff;
 }
 
 /**
@@ -267,26 +286,14 @@ export function canReportIncident(actor, booking, resource) {
  */
 export function canResolveIncident(actor, incident, booking, resource) {
   if (!actor || !incident || incident.status !== 'open') return false;
-  return actor.role === ROLES.ADMIN || (actor.role === ROLES.OWNER && resource && resource.owner_id === actor.id);
+  return actor.role === ROLES.ADMIN || actor.role === ROLES.VOLUNTEER || actor.role === 'owner';
 }
 
 /**
  * Trust Score Calculation
- * 
- * Rules:
- * +10 on-time return with good condition
- * +3  on-time return with minor issue
- * -10 late return (returned_at > end_at, or currently overdue)
- * -15 per human-resolved damage incident (never from unconfirmed open reports!)
- * 
- * Score Tiers:
- * 0 - 19:   Newcomer
- * 20 - 49:  Reliable
- * 50 - 99:  Trusted
- * 100+:     Campus Legend
  */
 export function calculateTrustScore(studentId, userBookings = [], userIncidents = [], conditionReports = []) {
-  let score = 0;
+  let score = 25; // Default starter baseline
   const breakdown = [];
 
   const studentBookings = userBookings.filter(b => b.user_id === studentId);
@@ -305,16 +312,16 @@ export function calculateTrustScore(studentId, userBookings = [], userIncidents 
         score += 10;
         breakdown.push({ bookingId: b.id, change: +10, reason: 'On-time return in pristine condition' });
       } else if (condition === 'minor_issue') {
-        score += 3;
-        breakdown.push({ bookingId: b.id, change: +3, reason: 'On-time return with minor wear reported' });
+        score += 4;
+        breakdown.push({ bookingId: b.id, change: +4, reason: 'On-time return with minor wear reported' });
       }
     } else if (isOverdue(b)) {
-      score -= 10;
-      breakdown.push({ bookingId: b.id, change: -10, reason: 'Currently overdue equipment' });
+      score -= 15;
+      breakdown.push({ bookingId: b.id, change: -15, reason: 'Currently overdue equipment' });
     }
   }
 
-  // Damage penalty: ONLY applied when an incident is human-resolved confirming damage
+  // Damage penalty
   const confirmedDamageIncidents = userIncidents.filter(inc => 
     bookingIds.includes(inc.booking_id) &&
     inc.incident_type === 'damage' &&
@@ -322,8 +329,8 @@ export function calculateTrustScore(studentId, userBookings = [], userIncidents 
   );
 
   for (const inc of confirmedDamageIncidents) {
-    score -= 15;
-    breakdown.push({ incidentId: inc.id, change: -15, reason: `Resolved damage incident: ${inc.resolution || 'Damage confirmed'}` });
+    score -= 20;
+    breakdown.push({ incidentId: inc.id, change: -20, reason: `Resolved damage incident: ${inc.resolution || 'Damage confirmed'}` });
   }
 
   if (score < 0) score = 0;
@@ -345,32 +352,15 @@ export function calculateTrustScore(studentId, userBookings = [], userIncidents 
     score,
     level,
     badgeClass,
-    breakdown,
-    advisoryNotice: 'Trust scores are strictly advisory transparency metrics and never automatically bar or penalize users.'
+    breakdown
   };
 }
 
 /**
- * Checks if a booking request qualifies for instant auto-approval.
- * Conditions:
- * 1. Resource permits auto-approval for trusted students (auto_approve_trusted === true)
- * 2. Resource does NOT require training (!resource.training_required)
- * 3. User trust score >= 50 (Trusted or Campus Legend)
- * 4. Slot has no conflicts
- */
-export function canAutoApprove(user, resource, userTrustScore, hasConflict = false) {
-  if (!user || !resource) return false;
-  if (hasConflict) return false;
-  if (!resource.auto_approve_trusted) return false;
-  if (resource.training_required) return false;
-  return userTrustScore && userTrustScore.score >= 50;
-}
-
-/**
- * Calculates impact stats for the Impact Dashboard
+ * Impact calculation
  */
 export function calculateImpactStats(resources = [], bookings = []) {
-  const completedBookings = bookings.filter(b => b.status === BOOKING_STATUSES.RETURNED || b.status === BOOKING_STATUSES.CHECKED_OUT);
+  const completedBookings = bookings.filter(b => b.status === BOOKING_STATUSES.RETURNED || b.status === BOOKING_STATUSES.CHECKED_OUT || b.status === BOOKING_STATUSES.ALLOTTED);
   const totalBookings = bookings.length;
   const uniqueItemsShared = new Set(completedBookings.map(b => b.resource_id)).size;
 
@@ -386,11 +376,10 @@ export function calculateImpactStats(resources = [], bookings = []) {
 
     const res = resources.find(r => r.id === b.resource_id);
     const cat = res ? res.category : 'Default';
-    const repVal = res && res.replacement_value ? res.replacement_value : 350;
+    const repVal = res && res.replacement_value ? res.replacement_value : 250;
 
-    if (b.status === BOOKING_STATUSES.RETURNED || b.status === BOOKING_STATUSES.CHECKED_OUT) {
-      // Estimated savings: calculated based on equipment rental/purchase avoidance
-      estimatedMoneySaved += Math.round(repVal * 0.15);
+    if (b.status === BOOKING_STATUSES.RETURNED || b.status === BOOKING_STATUSES.CHECKED_OUT || b.status === BOOKING_STATUSES.ALLOTTED) {
+      estimatedMoneySaved += Math.round(repVal * 0.18);
       estimatedCO2Kg += (CATEGORY_CO2_SAVINGS_KG[cat] || CATEGORY_CO2_SAVINGS_KG.Default);
     }
 

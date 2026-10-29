@@ -24,7 +24,7 @@ export async function renderIncidents(params, container) {
       <span class="sticker sticker-coral">GOVERNANCE & FAIR ACCOUNTABILITY</span>
       <h1 style="font-size: 2.25rem; margin-top: 0.35rem;">Human Review Incident Log</h1>
       <p style="color: var(--color-muted); max-width: 700px;">
-        CampusShare adheres to the <strong>human-review guarantee</strong>: No student is ever penalized or fined automatically. Damage or delays open a collaborative dialogue between students and lab managers.
+        UniHive adheres to the <strong>human-review guarantee</strong>: No student is ever penalized or fined automatically. Damage or delays open a collaborative dialogue between students and lab managers.
       </p>
     </div>
 
